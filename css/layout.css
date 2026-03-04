@@ -1,0 +1,313 @@
+﻿.section {
+    padding: 78px 0;
+}
+
+.section-heading {
+    margin-bottom: 30px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
+    letter-spacing: 0.01em;
+}
+
+.navbar {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 30;
+    backdrop-filter: blur(8px);
+    background: linear-gradient(180deg, rgba(10, 12, 16, 0.52), rgba(10, 12, 16, 0.18));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.navbar.scrolled {
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(239, 95, 0, 0.18);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.1);
+}
+
+.navbar-content {
+    min-height: var(--nav-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.hero {
+    position: relative;
+    min-height: clamp(520px, 91svh, 780px);
+    display: flex;
+    align-items: center;
+    padding-top: calc(var(--nav-height) + 10px);
+    padding-bottom: 28px;
+    background: url("../assets/img/Mobil.jpeg") center 66% / cover no-repeat fixed;
+}
+
+.hero .container {
+    width: min(1240px, 92vw);
+    margin: 0 auto;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(14, 17, 22, 0.76) 0%, rgba(14, 17, 22, 0.5) 44%, rgba(14, 17, 22, 0.62) 100%),
+        radial-gradient(circle at 22% 30%, rgba(255, 106, 0, 0.28), transparent 42%);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+    max-width: 560px;
+    padding-top: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.hero-kicker {
+    margin: 0 0 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--orange);
+    font-weight: 700;
+    font-size: clamp(0.72rem, 0.8vw, 0.84rem);
+}
+
+.hero h1 {
+    margin: 0;
+    letter-spacing: 0;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    line-height: 0.96;
+    font-weight: 800;
+}
+
+.hero-subtitle {
+    margin: 18px 0 0;
+    max-width: 560px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.96rem, 1.1vw, 1.2rem);
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.stats-strip {
+    background: #f3e8e0;
+    border-top: 1px solid rgba(255, 255, 255, 0.55);
+    padding: 8px 0 7px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+}
+
+.about-section {
+    background: #f7f7f7;
+    padding: 120px 0 120px;
+}
+
+.about-intro {
+    max-width: 860px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.about-title {
+    margin: 0;
+    font-size: clamp(1.9rem, 4.2vw, 3.2rem);
+    line-height: 1.12;
+    font-weight: 800;
+    color: #1b1e22;
+}
+
+.about-copy {
+    max-width: 760px;
+    margin: 16px auto 0;
+    color: #5f6770;
+    font-size: clamp(0.94rem, 1.2vw, 1.03rem);
+    line-height: 1.6;
+}
+
+.about-cards {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.routes-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 430px) minmax(380px, 760px);
+    gap: 28px;
+    align-items: start;
+    justify-content: center;
+    width: min(100%, 1220px);
+    margin: 0 auto;
+}
+
+.routes-heading {
+    text-align: center;
+    max-width: 920px;
+    margin: 0 auto 26px;
+}
+
+.routes-section .container {
+    width: min(1320px, 94vw);
+}
+
+.routes-heading .chip {
+    margin: 0 auto 12px;
+}
+
+.routes-subtitle {
+    margin: 14px auto 0;
+    max-width: 740px;
+    color: var(--muted);
+    font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+    line-height: 1.55;
+}
+
+.route-info-card {
+    display: grid;
+    gap: 14px;
+    width: 100%;
+    max-width: 760px;
+    justify-self: center;
+}
+
+.route-list {
+    display: grid;
+    gap: 12px;
+    max-height: 560px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 2px;
+}
+
+.workers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.ranking-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.footer-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.modal-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 990px) {
+    :root {
+        --nav-height: 64px;
+    }
+
+    .stats-grid,
+    .workers-grid,
+    .ranking-grid,
+    .modal-grid,
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .routes-layout {
+        grid-template-columns: 1fr;
+        width: min(100%, 760px);
+    }
+
+    .about-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hero {
+        background-attachment: scroll;
+        background-position: center 68%;
+        min-height: clamp(500px, 72svh, 660px);
+        padding-top: calc(var(--nav-height) + 18px);
+    }
+
+    .hero-content {
+        max-width: min(560px, 100%);
+    }
+
+    .routes-heading {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 680px) {
+    :root {
+        --nav-height: 60px;
+    }
+
+    .navbar-content {
+        min-height: var(--nav-height);
+    }
+
+    .section {
+        padding: 64px 0;
+    }
+
+    .about-section {
+        padding: 52px 0 58px;
+    }
+
+    .hero {
+        background-position: center 70%;
+        min-height: clamp(500px, 74svh, 600px);
+        padding-top: calc(var(--nav-height) + 16px);
+        padding-bottom: 20px;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stats-grid,
+    .about-cards,
+    .workers-grid,
+    .ranking-grid,
+    .modal-grid,
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
