@@ -26,6 +26,13 @@ window.WorkersModule = ((AppUtils) => {
         return "role-driver";
     }
 
+    function isDriverMember(member) {
+        const role = AppUtils.normalizeText(member?.role || "");
+        if (!role) return true;
+        if (role.includes("owner")) return false;
+        return true;
+    }
+
     function getWorkerJobs(memberId) {
         if (!appState) return [];
         return appState.jobs
@@ -120,7 +127,9 @@ window.WorkersModule = ((AppUtils) => {
 
         grid.innerHTML = "";
 
-        const ordered = [...appState.members].sort((a, b) => b.totalKm - a.totalKm);
+        const ordered = appState.members
+            .filter((member) => isDriverMember(member))
+            .sort((a, b) => b.totalKm - a.totalKm);
 
         ordered.forEach((member) => {
             const route = appState.assignedRouteByDriver.get(member.id) || "No asignada";

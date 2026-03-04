@@ -33,11 +33,10 @@ Todo el contenido principal se carga en una sola página (`index.html`) con secc
 
 La app consume datos de la compañía **41407** en Trucky.
 
-- Base API: `https://e.truckyapp.com/api/v1/company/41407`
+- Base API: `https://e.truckyapp.com/`
 - Integrantes: `/members`
 - Trabajos (paginado): `/jobs`
-- Rutas activas (endpoint dedicado):
-  `/jobs?top=0&page=1&perPage=100&status=in_progress&sortingField=updated_at&sortingDirection=desc`
+- Rutas activas
 
 ### Reglas implementadas
 

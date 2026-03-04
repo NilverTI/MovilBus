@@ -25,6 +25,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         source: "api",
         members: [],
         jobs: [],
+        companyTotals: null,
         activeServerJobs: [],
         recentDriverRoutes: [],
         monthKmByDriver: new Map(),
@@ -145,10 +146,16 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         return result;
     }
 
+    function isOwnerMember(member) {
+        const role = AppUtils.normalizeText(member?.role || "");
+        return role.includes("owner");
+    }
+
     function renderStats() {
-        const totalKm = state.members.reduce((sum, member) => sum + member.totalKm, 0);
+        const membersTotalKm = state.members.reduce((sum, member) => sum + member.totalKm, 0);
+        const totalKm = AppUtils.toNumber(state.companyTotals?.totalDistance) || membersTotalKm;
         const completedRoutes = state.jobs.filter((job) => job.status === "completed").length;
-        const totalDrivers = state.members.length;
+        const totalDrivers = state.members.filter((member) => !isOwnerMember(member)).length;
         const activeJobsCount = state.recentDriverRoutes.length;
 
         const totalKmEl = document.getElementById("totalKm");
@@ -293,6 +300,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         state.source = payload.source;
         state.members = payload.members;
         state.jobs = payload.jobs;
+        state.companyTotals = payload.companyTotals || null;
 
         const memberByName = new Map(state.members.map((member) => [AppUtils.normalizeText(member.name), member.id]));
 
