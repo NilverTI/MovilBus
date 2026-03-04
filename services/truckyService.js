@@ -1,12 +1,18 @@
 ﻿"use strict";
 
 window.TruckyService = ((AppUtils, AppApi) => {
+    const DEFAULT_AVATAR = "assets/img/default-avatar.svg";
+    const PLACEHOLDER_AVATAR_SIGNATURES = [
+        "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
+        "0000000000000000000000000000000000000000"
+    ];
+
     const FALLBACK_MEMBERS = [
-        { id: 1, name: "Nilver TI", role: { name: "Conductor" }, total_driven_distance_km: 48210, avatar_url: "assets/img/default-avatar.svg" },
-        { id: 2, name: "Jeap Rutero", role: { name: "Conductor" }, total_driven_distance_km: 45110, avatar_url: "assets/img/default-avatar.svg" },
-        { id: 3, name: "CarlManu", role: { name: "Conductor" }, total_driven_distance_km: 31980, avatar_url: "assets/img/default-avatar.svg" },
-        { id: 4, name: "Jefferson", role: { name: "Administrador" }, total_driven_distance_km: 51740, avatar_url: "assets/img/default-avatar.svg" },
-        { id: 5, name: "Sahur", role: { name: "Conductor" }, total_driven_distance_km: 26770, avatar_url: "assets/img/default-avatar.svg" }
+        { id: 1, name: "Nilver TI", role: { name: "Conductor" }, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
+        { id: 2, name: "Jeap Rutero", role: { name: "Conductor" }, total_driven_distance_km: 45110, avatar_url: DEFAULT_AVATAR },
+        { id: 3, name: "CarlManu", role: { name: "Conductor" }, total_driven_distance_km: 31980, avatar_url: DEFAULT_AVATAR },
+        { id: 4, name: "Jefferson", role: { name: "Administrador" }, total_driven_distance_km: 51740, avatar_url: DEFAULT_AVATAR },
+        { id: 5, name: "Sahur", role: { name: "Conductor" }, total_driven_distance_km: 26770, avatar_url: DEFAULT_AVATAR }
     ];
 
     const FALLBACK_JOBS = [
@@ -82,12 +88,23 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
     ];
 
+    function sanitizeAvatarUrl(value) {
+        const url = String(value || "").trim();
+        if (!url) return DEFAULT_AVATAR;
+
+        const lowerUrl = url.toLowerCase();
+        const isPlaceholder = PLACEHOLDER_AVATAR_SIGNATURES.some((signature) => lowerUrl.includes(signature));
+        if (isPlaceholder) return DEFAULT_AVATAR;
+
+        return url;
+    }
+
     function normalizeMembers(rows) {
         return rows.map((row, index) => ({
             id: AppUtils.toNumber(row.id || index + 1),
             name: row.name || row.username || `Conductor ${index + 1}`,
             role: row.role?.name || row.role || "Conductor",
-            avatar: row.avatar_url || row.avatar || "assets/img/default-avatar.svg",
+            avatar: sanitizeAvatarUrl(row.avatar_url || row.avatar || DEFAULT_AVATAR),
             totalKm: AppUtils.toNumber(row.total_driven_distance_km ?? row.km_driven_total)
         }));
     }

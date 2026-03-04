@@ -1,12 +1,25 @@
-﻿<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=index.html#rutas">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rutas | Movil Bus</title>
-</head>
-<body>
-    <p>Redirigiendo a Rutas...</p>
-</body>
-</html>
+﻿<section class="section section-soft routes-section reveal" id="rutas">
+    <div class="container">
+        <div class="section-heading routes-heading">
+            <p class="chip">Mapa de Rutas</p>
+            <h2>Rutas <span class="about-title-highlight">activas</span> del servidor</h2>
+            <p class="routes-subtitle">Explora nuestras rutas interprovinciales. Presiona un viaje para ver su detalle.</p>
+        </div>
+        <div class="routes-layout">
+            <article class="map-card">
+                <div class="map-frame">
+                    <img src="assets/img/mapa-peru.png" alt="Mapa del Perú con rutas activas">
+                    <div id="mapMarkers" class="map-markers"></div>
+                </div>
+                <p class="hint">Rutas visualizadas según la última actividad registrada en las últimas 72 horas.</p>
+            </article>
+            <article class="route-info-card">
+                <div class="route-indicator">
+                    <span class="pulse"></span>
+                    <strong id="routeIndicator">Rutas activas en vivo</strong>
+                </div>
+                <div id="routeList" class="route-list"></div>
+            </article>
+        </div>
+    </div>
+</section>

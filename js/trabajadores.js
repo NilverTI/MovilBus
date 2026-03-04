@@ -7,6 +7,14 @@ window.WorkersModule = ((AppUtils) => {
         appState = state;
     }
 
+    function getRoleClass(roleName) {
+        const normalized = AppUtils.normalizeText(roleName);
+        if (normalized.includes("owner")) return "role-owner";
+        if (normalized.includes("admin")) return "role-admin";
+        if (normalized.includes("conductor")) return "role-driver";
+        return "role-driver";
+    }
+
     function getWorkerJobs(memberId) {
         if (!appState) return [];
         return appState.jobs
@@ -31,6 +39,7 @@ window.WorkersModule = ((AppUtils) => {
         const activeJobs = jobs.filter((job) => job.status === "in_progress");
         const monthKm = appState.monthKmByDriver.get(memberId) || 0;
         const routeAssigned = appState.assignedRouteByDriver.get(memberId) || "No asignada";
+        const roleClass = getRoleClass(member.role);
 
         const historyRows = jobs.slice(0, 6).map((job) => {
             const km = job.drivenKm || job.plannedKm;
@@ -47,12 +56,12 @@ window.WorkersModule = ((AppUtils) => {
                 <img src="${member.avatar}" alt="Avatar de ${member.name}" onerror="this.src='assets/img/default-avatar.svg'">
                 <div>
                     <h3>${member.name}</h3>
-                    <p>${member.role} | Ruta asignada: ${routeAssigned}</p>
+                    <p><span class="role-label ${roleClass}">${member.role}</span> | Ruta asignada: ${routeAssigned}</p>
                 </div>
             </div>
             <div class="modal-grid">
                 <article class="modal-metric">
-                    <p>KM historicos</p>
+                    <p>KM Acumulado</p>
                     <strong>${AppUtils.formatNumber(member.totalKm)} km</strong>
                 </article>
                 <article class="modal-metric">
@@ -73,7 +82,7 @@ window.WorkersModule = ((AppUtils) => {
                 </article>
                 <article class="modal-metric">
                     <p>Rango</p>
-                    <strong>${member.role}</strong>
+                    <strong class="role-label ${roleClass}">${member.role}</strong>
                 </article>
             </div>
             <ul class="history-list">
@@ -105,6 +114,7 @@ window.WorkersModule = ((AppUtils) => {
         ordered.forEach((member) => {
             const route = appState.assignedRouteByDriver.get(member.id) || "No asignada";
             const monthKm = appState.monthKmByDriver.get(member.id) || 0;
+            const roleClass = getRoleClass(member.role);
 
             const card = document.createElement("article");
             card.className = "worker-card";
@@ -113,13 +123,13 @@ window.WorkersModule = ((AppUtils) => {
                     <img src="${member.avatar}" alt="Avatar de ${member.name}" onerror="this.src='assets/img/default-avatar.svg'">
                     <div>
                         <h3>${member.name}</h3>
-                        <p>${member.role}</p>
+                        <p class="role-label ${roleClass}">${member.role}</p>
                     </div>
                 </div>
                 <div class="worker-stats">
                     <div class="worker-stat"><span>Ruta</span><span>${route}</span></div>
                     <div class="worker-stat"><span>KM del mes</span><span>${AppUtils.formatNumber(monthKm)} km</span></div>
-                    <div class="worker-stat"><span>KM historicos</span><span>${AppUtils.formatNumber(member.totalKm)} km</span></div>
+                    <div class="worker-stat"><span>KM Acumulado</span><span>${AppUtils.formatNumber(member.totalKm)} km</span></div>
                 </div>
             `;
 

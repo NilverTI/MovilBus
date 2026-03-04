@@ -1,6 +1,15 @@
 ﻿"use strict";
 
 window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule, FormModule) => {
+    const NAV_ITEMS = [
+        { key: "inicio", label: "Inicio", href: "#inicio" },
+        { key: "nosotros", label: "Nosotros", href: "#nosotros" },
+        { key: "rutas", label: "Rutas", href: "#rutas" },
+        { key: "trabajadores", label: "Trabajadores", href: "#trabajadores" },
+        { key: "ranking", label: "Ranking", href: "#ranking" },
+        { key: "postula", label: "Postula", href: "#postula" }
+    ];
+
     const state = {
         source: "api",
         members: [],
@@ -11,6 +20,85 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         assignedRouteByDriver: new Map(),
         routes: []
     };
+
+    function setNavActive(key) {
+        document.querySelectorAll("[data-nav-key]").forEach((link) => {
+            link.classList.toggle("active", link.dataset.navKey === key);
+        });
+    }
+
+    function getHashNavKey() {
+        const hash = String(window.location.hash || "").replace("#", "").toLowerCase();
+        return NAV_ITEMS.some((item) => item.key === hash) ? hash : "inicio";
+    }
+
+    function renderSiteFrame() {
+        const headerHost = document.getElementById("siteHeader");
+        const footerHost = document.getElementById("siteFooter");
+
+        const navLinks = NAV_ITEMS
+            .map((item) => `<a href="${item.href}" data-nav-key="${item.key}">${item.label}</a>`)
+            .join("");
+
+        if (headerHost) {
+            headerHost.innerHTML = `
+                <header class="navbar" id="top">
+                    <div class="container navbar-content">
+                        <a class="brand" href="/#inicio">
+                            <img class="brand-logo" src="assets/img/logo.png" alt="Movil Bus">
+                        </a>
+                        <nav class="nav-links" aria-label="Navegacion principal">
+                            ${navLinks}
+                        </nav>
+                    </div>
+                </header>
+            `;
+        }
+
+        if (footerHost) {
+            footerHost.innerHTML = `
+                <footer class="footer">
+                    <div class="container footer-wrap">
+                        <div class="footer-main">
+                            <a class="footer-brand-left" href="/#inicio">
+                                <img src="assets/img/logo.png" alt="Logo Movil Bus" class="footer-logo">
+                            </a>
+
+                            <div class="footer-center">
+                                <nav class="footer-nav" aria-label="Navegacion inferior">
+                                    ${navLinks}
+                                </nav>
+                                <p class="footer-copy"><strong>2026 Copyright MovilBus - Desarrollado por <span class="footer-accent">NILVER T.I</span></strong></p>
+                            </div>
+
+                            <div class="footer-right">
+                                <a class="footer-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            `;
+        }
+    }
+
+    async function loadSectionPartials() {
+        const hosts = [...document.querySelectorAll("[data-include]")];
+        if (!hosts.length) return;
+
+        await Promise.all(hosts.map(async (host) => {
+            const path = host.dataset.include;
+            if (!path) return;
+
+            try {
+                const response = await fetch(path, { headers: { Accept: "text/html" } });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                host.innerHTML = await response.text();
+            } catch (error) {
+                console.error("No se pudo cargar el bloque:", path, error);
+                host.innerHTML = `<section class="section container"><p class="hint">No se pudo cargar ${path}</p></section>`;
+            }
+        }));
+    }
 
     function getMonthKmByDriver(jobs) {
         const current = new Date();
@@ -70,35 +158,35 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     function setupNavigation() {
-        const links = [...document.querySelectorAll(".nav-links a")];
         const navbar = document.querySelector(".navbar");
-        if (!links.length) return;
+        if (!navbar) return;
 
-        const sections = links
-            .map((link) => document.querySelector(link.getAttribute("href")))
-            .filter(Boolean);
+        const setActiveByScroll = () => {
+            const scrollPoint = window.scrollY + 140;
+            let currentKey = "inicio";
 
-        const setActive = () => {
-            const scrollPoint = window.scrollY + 120;
-            let currentId = "inicio";
-
-            if (navbar) {
-                navbar.classList.toggle("scrolled", window.scrollY > 40);
-            }
-
-            sections.forEach((section) => {
-                if (section.offsetTop <= scrollPoint) {
-                    currentId = section.id;
+            NAV_ITEMS.forEach((item) => {
+                const section = document.getElementById(item.key);
+                if (section && section.offsetTop <= scrollPoint) {
+                    currentKey = item.key;
                 }
             });
 
-            links.forEach((link) => {
-                link.classList.toggle("active", link.getAttribute("href") === `#${currentId}`);
-            });
+            setNavActive(currentKey);
         };
 
-        setActive();
-        window.addEventListener("scroll", setActive);
+        const onScroll = () => {
+            navbar.classList.toggle("scrolled", window.scrollY > 40);
+            setActiveByScroll();
+        };
+
+        onScroll();
+        window.addEventListener("scroll", onScroll);
+
+        window.addEventListener("hashchange", () => {
+            const key = getHashNavKey();
+            setNavActive(key);
+        });
     }
 
     function setupParallax() {
@@ -126,6 +214,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     async function init() {
+        renderSiteFrame();
+        await loadSectionPartials();
+
+        setNavActive(getHashNavKey());
         setupRevealOnScroll();
         setupNavigation();
         setupParallax();

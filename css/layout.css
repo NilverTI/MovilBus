@@ -2,6 +2,14 @@
     padding: 78px 0;
 }
 
+.page-main {
+    padding-top: calc(var(--nav-height) + 16px);
+}
+
+.page-main .section:first-child {
+    padding-top: 38px;
+}
+
 .section-heading {
     margin-bottom: 30px;
 }
@@ -120,6 +128,37 @@
     padding: 120px 0 120px;
 }
 
+#nosotros,
+#trabajadores,
+#postula {
+    background: #ffffff;
+}
+
+#rutas,
+#ranking {
+    background:
+        radial-gradient(circle at 15% 18%, rgba(255, 255, 255, 0.42), transparent 32%),
+        radial-gradient(circle at 85% 78%, rgba(255, 255, 255, 0.3), transparent 36%),
+        linear-gradient(180deg, #fff1e3 0%, #ffe4cc 100%);
+    border-top: 1px solid rgba(255, 106, 0, 0.18);
+    border-bottom: 1px solid rgba(255, 106, 0, 0.12);
+}
+
+#rutas .routes-subtitle,
+#ranking .ranking-subtitle {
+    color: #6a4a2a;
+}
+
+#rutas .hint {
+    color: #7b5b3a;
+}
+
+#rutas .chip,
+#ranking .chip {
+    background: rgba(255, 255, 255, 0.55);
+    color: #d15a00;
+}
+
 .about-intro {
     max-width: 860px;
     margin: 0 auto;
@@ -220,14 +259,6 @@
     grid-column: 1 / -1;
 }
 
-.footer-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
-}
-
 .modal-grid {
     margin-top: 14px;
     display: grid;
@@ -286,6 +317,14 @@
         padding: 64px 0;
     }
 
+    .page-main {
+        padding-top: calc(var(--nav-height) + 10px);
+    }
+
+    .page-main .section:first-child {
+        padding-top: 24px;
+    }
+
     .about-section {
         padding: 52px 0 58px;
     }
@@ -311,3 +350,5 @@
         grid-template-columns: 1fr;
     }
 }
+
+

@@ -308,22 +308,6 @@
     animation: livePulse 1.4s infinite;
 }
 
-.route-info {
-    border: 1px solid #f2dfce;
-    border-radius: 12px;
-    padding: 14px;
-    background: #fffaf6;
-}
-
-.route-info h3 {
-    margin: 0 0 6px;
-}
-
-.route-info p {
-    margin: 4px 0;
-    color: var(--muted);
-}
-
 .route-item {
     border: 1px solid #f1e4d8;
     border-radius: 12px;
@@ -424,6 +408,34 @@
     margin: 4px 0 0;
     color: var(--muted);
     font-size: 0.88rem;
+}
+
+.worker-top p.role-driver {
+    color: var(--orange);
+}
+
+.worker-top p.role-admin {
+    color: #dc2626;
+}
+
+.worker-top p.role-owner {
+    color: #eab308;
+}
+
+.role-label {
+    font-weight: 700;
+}
+
+.role-driver {
+    color: var(--orange);
+}
+
+.role-admin {
+    color: #dc2626;
+}
+
+.role-owner {
+    color: #eab308;
 }
 
 .worker-stats {
@@ -666,6 +678,12 @@ select.invalid {
     background: rgba(255, 106, 0, 0.15);
 }
 
+.footer-nav a.active {
+    border-color: rgba(255, 106, 0, 0.55);
+    color: #fff;
+    background: rgba(255, 106, 0, 0.15);
+}
+
 .footer-tiktok {
     text-decoration: none;
     border: 1px solid rgba(255, 155, 64, 0.85);
@@ -774,6 +792,30 @@ select.invalid {
     display: block;
     margin-top: 6px;
     color: var(--orange-strong);
+}
+
+.modal-metric strong.role-driver {
+    color: var(--orange);
+}
+
+.modal-metric strong.role-admin {
+    color: #dc2626;
+}
+
+.modal-metric strong.role-owner {
+    color: #eab308;
+}
+
+.modal-head .role-driver {
+    color: var(--orange);
+}
+
+.modal-head .role-admin {
+    color: #dc2626;
+}
+
+.modal-head .role-owner {
+    color: #eab308;
 }
 
 .modal-route-link {
