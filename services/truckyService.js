@@ -14,6 +14,15 @@
 window.TruckyService = ((AppUtils, AppApi) => {
     const DEFAULT_AVATAR = "assets/img/default-avatar.svg";
     const MAX_MONTH_JOB_PAGES = 120;
+    const COMPANY_CACHE_KEY = "movilbus:company-data:v3";
+    const MONTH_CACHE_KEY = "movilbus:month-cache:v2";
+    const TOTALS_CACHE_KEY = "movilbus:totals-cache:v3";
+    const TOTALS_REVALIDATE_MS = 4 * 60 * 60 * 1000;
+    const CURRENT_MONTH_CACHE_MS = 3 * 60 * 1000;
+    const MAX_PERSISTED_MONTHS = 96;
+    const FAST_LOAD_TIMEOUT_MS = 9000;
+    const YEARLY_STATS_TIMEOUT_MS = 4500;
+    const FAST_JOBS_ENDPOINT = "/jobs?top=0&page=1&perPage=100&sortingField=updated_at&sortingDirection=desc";
     const PLACEHOLDER_AVATAR_SIGNATURES = [
         "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
         "0000000000000000000000000000000000000000"
@@ -101,6 +110,156 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
     ];
 
+    hydrateMonthCache();
+
+    function canUseStorage() {
+        if (typeof window === "undefined") return false;
+        try {
+            return !!window.localStorage;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function readStorage(key) {
+        if (!canUseStorage()) return null;
+
+        try {
+            const raw = window.localStorage.getItem(key);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch (error) {
+            console.warn("No se pudo leer cache local:", key, error);
+            return null;
+        }
+    }
+
+    function writeStorage(key, value) {
+        if (!canUseStorage()) return;
+
+        try {
+            window.localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.warn("No se pudo guardar cache local:", key, error);
+        }
+    }
+
+    function hydrateMonthCache() {
+        const stored = readStorage(MONTH_CACHE_KEY);
+        if (!Array.isArray(stored)) return;
+
+        stored.forEach((entry) => {
+            if (!Array.isArray(entry) || entry.length !== 2) return;
+            const [cacheKey, cacheValue] = entry;
+            if (!cacheKey || !cacheValue || typeof cacheValue !== "object") return;
+            monthCache.set(String(cacheKey), cacheValue);
+        });
+    }
+
+    function persistMonthCache() {
+        const entries = [...monthCache.entries()].slice(-MAX_PERSISTED_MONTHS);
+        writeStorage(MONTH_CACHE_KEY, entries);
+    }
+
+    function sanitizeCompanyTotals(value) {
+        if (!value || typeof value !== "object") return null;
+
+        return {
+            companyId: AppUtils.toNumber(value.companyId),
+            totalDistance: AppUtils.toNumber(value.totalDistance),
+            totalJobs: AppUtils.toNumber(value.totalJobs),
+            realKm: AppUtils.toNumber(value.realKm),
+            raceKm: AppUtils.toNumber(value.raceKm),
+            jobsCompleted: AppUtils.toNumber(value.jobsCompleted),
+            jobsCanceled: AppUtils.toNumber(value.jobsCanceled),
+            year: AppUtils.toNumber(value.year),
+            monthsProcessed: AppUtils.toNumber(value.monthsProcessed),
+            monthsWithErrors: AppUtils.toNumber(value.monthsWithErrors),
+            monthsTotal: AppUtils.toNumber(value.monthsTotal),
+            source: value.source || "members-fallback",
+            cachedAt: AppUtils.toNumber(value.cachedAt)
+        };
+    }
+
+    function getCachedTotals() {
+        return sanitizeCompanyTotals(readStorage(TOTALS_CACHE_KEY));
+    }
+
+    function saveCachedTotals(totals) {
+        const normalized = sanitizeCompanyTotals(totals);
+        if (!normalized) return;
+        writeStorage(TOTALS_CACHE_KEY, normalized);
+    }
+
+    function getFallbackCompanyTotals(normalizedMembers) {
+        const membersTotalKm = normalizedMembers.reduce((sum, member) => sum + member.totalKm, 0);
+        const nowYear = new Date().getFullYear();
+        return {
+            companyId: extractCompanyId(),
+            totalDistance: membersTotalKm,
+            totalJobs: 0,
+            realKm: 0,
+            raceKm: 0,
+            jobsCompleted: 0,
+            jobsCanceled: 0,
+            year: nowYear,
+            monthsProcessed: 0,
+            monthsWithErrors: 0,
+            monthsTotal: 0,
+            source: "members-fallback",
+            cachedAt: Date.now()
+        };
+    }
+
+    function sanitizeCachedPayload(payload) {
+        if (!payload || typeof payload !== "object") return null;
+
+        const members = Array.isArray(payload.members) ? payload.members : [];
+        const jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
+        const recentJobs = Array.isArray(payload.recentJobs) ? payload.recentJobs : [];
+        if (members.length === 0 || jobs.length === 0) return null;
+
+        return {
+            source: payload.source || "api",
+            members,
+            jobs,
+            recentJobs,
+            companyTotals: sanitizeCompanyTotals(payload.companyTotals)
+        };
+    }
+
+    function getCachedCompanyData() {
+        const stored = readStorage(COMPANY_CACHE_KEY);
+        if (!stored || typeof stored !== "object") return null;
+
+        const payload = sanitizeCachedPayload(stored.payload);
+        if (!payload) return null;
+
+        return {
+            ...payload,
+            cachedAt: AppUtils.toNumber(stored.cachedAt)
+        };
+    }
+
+    function saveCachedCompanyData(payload) {
+        const safePayload = sanitizeCachedPayload(payload);
+        if (!safePayload) return;
+
+        writeStorage(COMPANY_CACHE_KEY, {
+            cachedAt: Date.now(),
+            payload: safePayload
+        });
+    }
+
+    function withDeadline(promise, timeoutMs = FAST_LOAD_TIMEOUT_MS) {
+        return Promise.race([
+            promise,
+            new Promise((resolve) => {
+                window.setTimeout(() => resolve(null), timeoutMs);
+            })
+        ]);
+    }
+
     function sanitizeAvatarUrl(value) {
         const url = String(value || "").trim();
         if (!url) return DEFAULT_AVATAR;
@@ -187,40 +346,74 @@ window.TruckyService = ((AppUtils, AppApi) => {
         return await AppApi.fetchEndpoint("");
     }
 
+    async function fetchCompanyYearlyTotals(year = new Date().getFullYear()) {
+        const payload = await AppApi.fetchEndpoint(`/stats/yearly?year=${year}`);
+        if (!payload || typeof payload !== "object") return null;
+
+        const ets2 = payload.ets2 || {};
+        const total = payload.total || {};
+        const raceKm = AppUtils.toNumber(ets2.race_km ?? total.race_km);
+        const realKm = AppUtils.toNumber(ets2.real_km ?? total.real_km);
+        const totalDistance = AppUtils.toNumber(ets2.total_km) || (raceKm + realKm);
+        const totalJobs = AppUtils.toNumber(ets2.total_jobs ?? total.total_jobs);
+        const jobsCompleted = AppUtils.toNumber(ets2.jobs_completed ?? total.jobs_completed);
+        const jobsCanceled = AppUtils.toNumber(ets2.jobs_canceled ?? total.jobs_canceled);
+
+        if (totalDistance <= 0 && totalJobs <= 0) return null;
+
+        return {
+            companyId: extractCompanyId(),
+            totalDistance,
+            totalJobs,
+            realKm,
+            raceKm,
+            jobsCompleted,
+            jobsCanceled,
+            year: AppUtils.toNumber(payload.year || year),
+            monthsProcessed: 0,
+            monthsWithErrors: 0,
+            monthsTotal: 0,
+            source: "yearly-api",
+            cachedAt: Date.now()
+        };
+    }
+
     async function fetchMonthWithCache(companyId, month, year, isCurrentMonth) {
         const cacheKey = `${companyId}:${year}-${month}`;
+        const now = Date.now();
         const cached = monthCache.get(cacheKey);
-        if (cached) return cached;
+        if (cached) {
+            const cachedAt = AppUtils.toNumber(cached.cachedAt);
+            const isCurrentMonthFresh = now - cachedAt <= CURRENT_MONTH_CACHE_MS;
+            if (!isCurrentMonth || isCurrentMonthFresh) return cached;
+        }
 
         const sorting = isCurrentMonth ? "&sortingField=updated_at&sortingDirection=desc" : "";
         const endpoint = `/jobs?top=0&page=1&perPage=100&month=${month}&year=${year}${sorting}`;
         const paginated = await AppApi.fetchPaginatedDetailed(endpoint, MAX_MONTH_JOB_PAGES);
         const jobs = Array.isArray(paginated.rows) ? paginated.rows : [];
 
-        const entries = jobs.reduce((acc, row) => {
+        const seenJobIds = new Set();
+        const monthDistance = jobs.reduce((sum, row) => {
             const distance = getCountableDistanceKm(row);
-            if (distance <= 0) return acc;
+            if (distance <= 0) return sum;
 
             const jobId = AppUtils.toNumber(row.id);
-            if (!jobId) return acc;
+            if (!jobId || seenJobIds.has(jobId)) return sum;
 
-            acc.push({
-                id: jobId,
-                distance
-            });
-            return acc;
-        }, []);
-
-        const monthDistance = entries.reduce((sum, item) => sum + item.distance, 0);
+            seenJobIds.add(jobId);
+            return sum + distance;
+        }, 0);
 
         const monthData = {
             success: !paginated.hasError,
             distance: monthDistance,
-            jobs: entries.length,
-            entries
+            jobs: seenJobIds.size,
+            cachedAt: now
         };
 
         monthCache.set(cacheKey, monthData);
+        persistMonthCache();
         return monthData;
     }
 
@@ -238,19 +431,14 @@ window.TruckyService = ((AppUtils, AppApi) => {
         let totalJobs = 0;
         let monthsProcessed = 0;
         let monthsWithErrors = 0;
-        const seenJobIds = new Set();
 
         for (const { month, year } of monthRange) {
             const isCurrentMonth = month === currentMonth && year === currentYear;
             const monthData = await fetchMonthWithCache(companyId, month, year, isCurrentMonth);
 
             if (monthData.success) {
-                monthData.entries.forEach((entry) => {
-                    if (seenJobIds.has(entry.id)) return;
-                    seenJobIds.add(entry.id);
-                    totalDistance += entry.distance;
-                    totalJobs += 1;
-                });
+                totalDistance += AppUtils.toNumber(monthData.distance);
+                totalJobs += AppUtils.toNumber(monthData.jobs);
                 monthsProcessed += 1;
             } else {
                 monthsWithErrors += 1;
@@ -264,44 +452,55 @@ window.TruckyService = ((AppUtils, AppApi) => {
             monthsProcessed,
             monthsWithErrors,
             monthsTotal: monthRange.length,
-            source: monthsWithErrors > 0 ? "monthly-partial" : "monthly-precise"
+            source: monthsWithErrors > 0 ? "monthly-partial" : "monthly-precise",
+            cachedAt: Date.now()
         };
     }
 
-    async function loadCompanyData() {
-        const membersPayloadPromise = AppApi.fetchEndpoint("/members");
-        const jobsPayloadPromise = AppApi.fetchPaginated("/jobs", AppApi.MAX_JOB_PAGES);
-        const recentJobsPayloadPromise = AppApi.fetchEndpoint(AppApi.RECENT_ROUTES_ENDPOINT);
-        const monthlyTotalsPromise = calculateCompanyMonthlyTotals();
+    async function refreshTotalsIfNeeded(currentTotals) {
+        const now = Date.now();
+        const source = String(currentTotals?.source || "");
+        const cachedYear = AppUtils.toNumber(currentTotals?.year);
+        const currentYear = new Date().getFullYear();
+        const totalsAge = now - AppUtils.toNumber(currentTotals?.cachedAt);
 
-        const [membersPayloadResult, jobsPayloadResult, recentJobsPayloadResult, monthlyTotalsResult] = await Promise.allSettled([
+        if (source === "yearly-api" && cachedYear === currentYear && totalsAge > 0 && totalsAge <= TOTALS_REVALIDATE_MS) {
+            return null;
+        }
+
+        try {
+            const refreshed = await withDeadline(fetchCompanyYearlyTotals(currentYear), YEARLY_STATS_TIMEOUT_MS);
+            if (!refreshed) return null;
+            saveCachedTotals(refreshed);
+            return refreshed;
+        } catch (error) {
+            console.error("No se pudo actualizar totales anuales:", error);
+            return null;
+        }
+    }
+
+    async function loadCompanyData() {
+        const currentYear = new Date().getFullYear();
+        const membersPayloadPromise = withDeadline(AppApi.fetchEndpoint("/members"));
+        const jobsPayloadPromise = withDeadline(AppApi.fetchEndpoint(FAST_JOBS_ENDPOINT));
+        const recentJobsPayloadPromise = withDeadline(AppApi.fetchEndpoint(AppApi.RECENT_ROUTES_ENDPOINT));
+        const yearlyTotalsPromise = withDeadline(fetchCompanyYearlyTotals(currentYear), YEARLY_STATS_TIMEOUT_MS);
+
+        const [membersPayload, jobsPayload, recentJobsPayload, yearlyTotals] = await Promise.all([
             membersPayloadPromise,
             jobsPayloadPromise,
             recentJobsPayloadPromise,
-            monthlyTotalsPromise
+            yearlyTotalsPromise
         ]);
 
         let source = "api";
         let membersRaw = [];
         let jobsRaw = [];
         let recentJobsRaw = [];
-        let companyTotals = null;
 
-        if (membersPayloadResult.status === "fulfilled") {
-            membersRaw = AppUtils.getDataArray(membersPayloadResult.value);
-        }
-
-        if (jobsPayloadResult.status === "fulfilled") {
-            jobsRaw = Array.isArray(jobsPayloadResult.value) ? jobsPayloadResult.value : [];
-        }
-
-        if (recentJobsPayloadResult.status === "fulfilled") {
-            recentJobsRaw = AppUtils.getDataArray(recentJobsPayloadResult.value);
-        }
-
-        if (monthlyTotalsResult.status === "fulfilled") {
-            companyTotals = monthlyTotalsResult.value;
-        }
+        membersRaw = AppUtils.getDataArray(membersPayload);
+        jobsRaw = AppUtils.getDataArray(jobsPayload);
+        recentJobsRaw = AppUtils.getDataArray(recentJobsPayload);
 
         if (membersRaw.length === 0) {
             membersRaw = FALLBACK_MEMBERS;
@@ -314,29 +513,73 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
 
         const normalizedMembers = normalizeMembers(membersRaw);
-        const membersTotalKm = normalizedMembers.reduce((sum, member) => sum + member.totalKm, 0);
-
-        if (!companyTotals) {
-            companyTotals = {
-                totalDistance: membersTotalKm,
-                totalJobs: 0,
-                monthsProcessed: 0,
-                monthsWithErrors: 0,
-                monthsTotal: 0,
-                source: "members-fallback"
-            };
+        if (yearlyTotals) {
+            saveCachedTotals(yearlyTotals);
         }
 
-        return {
+        const companyTotals = yearlyTotals || getCachedTotals() || getFallbackCompanyTotals(normalizedMembers);
+
+        const basePayload = {
             source,
             members: normalizedMembers,
             jobs: normalizeJobs(jobsRaw),
             recentJobs: normalizeJobs(recentJobsRaw),
             companyTotals
         };
+
+        saveCachedCompanyData(basePayload);
+
+        const totalsRefreshPromise = (source === "fallback"
+            ? Promise.resolve(null)
+            : refreshTotalsIfNeeded(companyTotals))
+            .then((refreshedTotals) => {
+                if (!refreshedTotals) return null;
+
+                const payloadWithFreshTotals = {
+                    ...basePayload,
+                    companyTotals: refreshedTotals
+                };
+
+                saveCachedCompanyData(payloadWithFreshTotals);
+                return {
+                    companyTotals: refreshedTotals
+                };
+            });
+
+        return {
+            ...basePayload,
+            totalsRefreshPromise
+        };
+    }
+
+    async function loadWorkersPreview() {
+        const cachedPayload = getCachedCompanyData();
+        if (cachedPayload?.members?.length) {
+            return {
+                source: "cache",
+                members: cachedPayload.members
+            };
+        }
+
+        const membersPayload = await withDeadline(AppApi.fetchEndpoint("/members"), 3500);
+        const membersRaw = AppUtils.getDataArray(membersPayload);
+
+        if (membersRaw.length > 0) {
+            return {
+                source: "api",
+                members: normalizeMembers(membersRaw)
+            };
+        }
+
+        return {
+            source: "fallback",
+            members: normalizeMembers(FALLBACK_MEMBERS)
+        };
     }
 
     return {
+        getCachedCompanyData,
+        loadWorkersPreview,
         loadCompanyData,
         normalizeMembers,
         normalizeJobs

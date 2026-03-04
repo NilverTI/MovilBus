@@ -3,7 +3,7 @@
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
 / /_| ||  /| |/ /_| |
-\_CONEXIÓN INESTABLE| _
+\_CONEXION INESTABLE| _
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
@@ -12,6 +12,8 @@
 "use strict";
 
 window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule, FormModule) => {
+    const AUTO_REFRESH_MS = 2 * 60 * 1000;
+    const STATS_SNAPSHOT_KEY = "movilbus:stats-snapshot:v2";
     const NAV_ITEMS = [
         { key: "inicio", label: "Inicio", href: "#inicio" },
         { key: "nosotros", label: "Nosotros", href: "#nosotros" },
@@ -32,6 +34,9 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         assignedRouteByDriver: new Map(),
         routes: []
     };
+    let syncInFlight = false;
+    let autoRefreshTimerId = null;
+    let toastTimerId = null;
 
     function setNavActive(key) {
         document.querySelectorAll("[data-nav-key]").forEach((link) => {
@@ -49,8 +54,22 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         const footerHost = document.getElementById("siteFooter");
 
         const navLinks = NAV_ITEMS
-            .map((item) => `<a href="${item.href}" data-nav-key="${item.key}">${item.label}</a>`)
+            .map((item) => {
+                const extraClass = item.key === "postula" ? "nav-cta" : "";
+                return `<a class="${extraClass}" href="${item.href}" data-nav-key="${item.key}">${item.label}</a>`;
+            })
             .join("");
+        const headerNavLinks = `
+            ${navLinks}
+            <a
+                class="nav-tiktok"
+                href="https://www.tiktok.com/@movil.bus.psv"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                TikTok
+            </a>
+        `;
 
         if (headerHost) {
             headerHost.innerHTML = `
@@ -73,7 +92,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                                 <span class="nav-toggle-line"></span>
                             </button>
                             <nav class="nav-links" id="siteNav" aria-label="Navegacion principal">
-                                ${navLinks}
+                                ${headerNavLinks}
                             </nav>
                         </div>
                     </div>
@@ -93,12 +112,9 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                             <div class="footer-center">
                                 <nav class="footer-nav" aria-label="Navegacion inferior">
                                     ${navLinks}
+                                    <a class="footer-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
                                 </nav>
                                 <p class="footer-copy"><strong>2026 Copyright MovilBus - Desarrollado por <span class="footer-accent">NILVER T.I</span></strong></p>
-                            </div>
-
-                            <div class="footer-right">
-                                <a class="footer-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
                             </div>
                         </div>
                     </div>
@@ -154,7 +170,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function renderStats() {
         const membersTotalKm = state.members.reduce((sum, member) => sum + member.totalKm, 0);
         const totalKm = AppUtils.toNumber(state.companyTotals?.totalDistance) || membersTotalKm;
-        const completedRoutes = state.jobs.filter((job) => job.status === "completed").length;
+        const completedRoutes = AppUtils.toNumber(state.companyTotals?.totalJobs)
+            || state.jobs.filter((job) => job.status === "completed").length;
         const totalDrivers = state.members.filter((member) => !isOwnerMember(member)).length;
         const activeJobsCount = state.recentDriverRoutes.length;
 
@@ -167,6 +184,122 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         if (completedRoutesEl) completedRoutesEl.textContent = AppUtils.formatNumber(completedRoutes);
         if (activeDriversEl) activeDriversEl.textContent = AppUtils.formatNumber(totalDrivers);
         if (activeRoutesCountEl) activeRoutesCountEl.textContent = AppUtils.formatNumber(activeJobsCount);
+
+        try {
+            window.localStorage.setItem(STATS_SNAPSHOT_KEY, JSON.stringify({
+                totalKm,
+                completedRoutes,
+                totalDrivers,
+                activeJobsCount,
+                savedAt: Date.now()
+            }));
+        } catch (error) {
+            // Ignore quota/private mode errors.
+        }
+    }
+
+    function showInfoToast(message, durationMs = 5000) {
+        if (!message) return;
+
+        const host = document.getElementById("toastHost");
+        if (!host) return;
+
+        host.innerHTML = "";
+
+        const toast = document.createElement("div");
+        toast.className = "toast toast-info";
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
+        toast.textContent = message;
+        host.appendChild(toast);
+
+        host.classList.add("visible");
+
+        if (toastTimerId) {
+            window.clearTimeout(toastTimerId);
+        }
+
+        toastTimerId = window.setTimeout(() => {
+            toast.classList.add("hide");
+            host.classList.remove("visible");
+            window.setTimeout(() => {
+                if (host.contains(toast)) host.removeChild(toast);
+            }, 240);
+        }, durationMs);
+    }
+
+    function setDataStatus(message, status = "loading", notify = false) {
+        const statusEl = document.getElementById("dataStatus");
+        if (statusEl) {
+            statusEl.textContent = message;
+            statusEl.dataset.status = status;
+        }
+
+        if (notify) {
+            showInfoToast(message, 5000);
+        }
+    }
+
+    function updateDataStatusFromPayload(payload, successMessage, notify = false) {
+        if (payload?.source === "fallback") {
+            setDataStatus("API no disponible. Mostrando datos de respaldo.", "fallback");
+            return;
+        }
+        setDataStatus(successMessage, "fresh", notify);
+    }
+
+    function bindTotalsRefresh(promiseLike) {
+        promiseLike?.then((totalsUpdate) => {
+            if (!totalsUpdate?.companyTotals) return;
+            state.companyTotals = totalsUpdate.companyTotals;
+            renderStats();
+            setDataStatus("Totales historicos actualizados.", "fresh");
+        }).catch((error) => {
+            console.warn("No se pudo aplicar la actualizacion de totales:", error);
+        });
+    }
+
+    function showDataLoadingPlaceholders() {
+        const routeIndicator = document.getElementById("routeIndicator");
+        const routeList = document.getElementById("routeList");
+        const workersGrid = document.getElementById("workersGrid");
+        const rankingMonth = document.getElementById("rankingMonth");
+        const rankingHistoric = document.getElementById("rankingHistoric");
+
+        if (routeIndicator) routeIndicator.textContent = "Cargando rutas...";
+
+        if (routeList) {
+            routeList.innerHTML = `
+                <div class="loading-stack" aria-label="Cargando rutas" aria-busy="true">
+                    <div class="loading-skeleton loading-route"></div>
+                    <div class="loading-skeleton loading-route"></div>
+                    <div class="loading-skeleton loading-route"></div>
+                </div>
+            `;
+        }
+
+        if (workersGrid) {
+            workersGrid.innerHTML = `
+                <div class="loading-stack loading-grid" aria-label="Cargando conductores" aria-busy="true">
+                    <div class="loading-skeleton loading-worker"></div>
+                    <div class="loading-skeleton loading-worker"></div>
+                    <div class="loading-skeleton loading-worker"></div>
+                </div>
+            `;
+        }
+
+        const rankingSkeleton = `
+            <div class="loading-stack" aria-label="Cargando ranking" aria-busy="true">
+                <div class="loading-skeleton loading-ranking"></div>
+                <div class="loading-skeleton loading-ranking"></div>
+                <div class="loading-skeleton loading-ranking"></div>
+                <div class="loading-skeleton loading-ranking"></div>
+                <div class="loading-skeleton loading-ranking"></div>
+            </div>
+        `;
+
+        if (rankingMonth) rankingMonth.innerHTML = rankingSkeleton;
+        if (rankingHistoric) rankingHistoric.innerHTML = rankingSkeleton;
     }
 
     function setupRevealOnScroll() {
@@ -283,23 +416,12 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         }, { passive: true });
     }
 
-    async function init() {
-        renderSiteFrame();
-        await loadSectionPartials();
-
-        setNavActive(getHashNavKey());
-        setupRevealOnScroll();
-        setupNavigation();
-        setupParallax();
-        RoutesModule.setupModalEvents();
-        WorkersModule.setupModalEvents();
-        FormModule.setupForm();
-
-        const payload = await TruckyService.loadCompanyData();
+    function applyPayload(payload) {
+        if (!payload) return;
 
         state.source = payload.source;
-        state.members = payload.members;
-        state.jobs = payload.jobs;
+        state.members = Array.isArray(payload.members) ? payload.members : [];
+        state.jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
         state.companyTotals = payload.companyTotals || null;
 
         const memberByName = new Map(state.members.map((member) => [AppUtils.normalizeText(member.name), member.id]));
@@ -309,7 +431,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             userId: job.userId || memberByName.get(AppUtils.normalizeText(job.driverName)) || 0
         }));
 
-        const recentCandidateJobs = payload.recentJobs.map((job) => ({
+        const recentCandidateJobs = (Array.isArray(payload.recentJobs) ? payload.recentJobs : []).map((job) => ({
             ...job,
             userId: job.userId || memberByName.get(AppUtils.normalizeText(job.driverName)) || 0
         }));
@@ -331,13 +453,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             RoutesModule.LAST_ROUTE_WINDOW_HOURS
         );
 
-        if (state.recentDriverRoutes.length === 0) {
-            state.recentDriverRoutes = RoutesModule.getLatestOpenRoutePerDriverInLastHours(
-                state.activeServerJobs,
-                RoutesModule.LAST_ROUTE_WINDOW_HOURS
-            );
-        }
-
         state.monthKmByDriver = getMonthKmByDriver(state.jobs);
         state.assignedRouteByDriver = RoutesModule.getAssignedRouteByDriver(state.jobs, state.recentDriverRoutes);
         state.routes = RoutesModule.buildRouteTrips(state.recentDriverRoutes);
@@ -348,8 +463,102 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         RoutesModule.renderRoutes(state.routes, state.source);
         WorkersModule.renderWorkers();
         RankingModule.renderRankings(state);
+    }
 
-        console.info(`Movil Bus inicializado con datos: ${state.source}`);
+    function applyWorkersPreview(preview) {
+        if (!preview || !Array.isArray(preview.members) || preview.members.length === 0) return;
+
+        state.members = preview.members;
+        state.jobs = [];
+        state.activeServerJobs = [];
+        state.recentDriverRoutes = [];
+        state.monthKmByDriver = new Map();
+        state.assignedRouteByDriver = new Map();
+        state.routes = [];
+
+        WorkersModule.setState(state);
+        WorkersModule.renderWorkers();
+    }
+
+    function scheduleAutoRefresh() {
+        if (autoRefreshTimerId) return;
+
+        autoRefreshTimerId = window.setInterval(async () => {
+            if (document.hidden || syncInFlight) return;
+            syncInFlight = true;
+
+            try {
+                const payload = await TruckyService.loadCompanyData();
+                applyPayload(payload);
+                updateDataStatusFromPayload(payload, "Datos actualizados automaticamente.");
+                bindTotalsRefresh(payload.totalsRefreshPromise);
+            } catch (error) {
+                console.warn("No se pudo actualizar automaticamente:", error);
+            } finally {
+                syncInFlight = false;
+            }
+        }, AUTO_REFRESH_MS);
+    }
+
+    async function init() {
+        renderSiteFrame();
+        setDataStatus("Cargando datos en vivo...", "loading");
+
+        const livePayloadPromise = TruckyService.loadCompanyData();
+        const workersPreviewPromise = TruckyService.loadWorkersPreview();
+        const cachedPayload = TruckyService.getCachedCompanyData();
+        let fullPayloadApplied = false;
+
+        if (cachedPayload) {
+            // Paint cache immediately so user never waits at zero metrics.
+            applyPayload(cachedPayload);
+            setDataStatus("Mostrando datos guardados. Actualizando en segundo plano...", "stale");
+            console.info("Movil Bus inicializado con cache local");
+        }
+
+        await loadSectionPartials();
+
+        setNavActive(getHashNavKey());
+        setupRevealOnScroll();
+        setupNavigation();
+        setupParallax();
+        RoutesModule.setupModalEvents();
+        WorkersModule.setupModalEvents();
+        FormModule.setupForm();
+
+        if (cachedPayload) {
+            // Re-render once includes are available.
+            applyPayload(cachedPayload);
+        } else {
+            showDataLoadingPlaceholders();
+            workersPreviewPromise.then((workersPreview) => {
+                if (fullPayloadApplied) return;
+                applyWorkersPreview(workersPreview);
+                setDataStatus("Trabajadores cargados. Sincronizando kilometros...", "stale");
+            }).catch((error) => {
+                console.warn("No se pudo cargar preview de trabajadores:", error);
+            });
+        }
+
+        try {
+            syncInFlight = true;
+            const livePayload = await livePayloadPromise;
+            fullPayloadApplied = true;
+            applyPayload(livePayload);
+            updateDataStatusFromPayload(livePayload, "Datos sincronizados con la API.", true);
+            bindTotalsRefresh(livePayload.totalsRefreshPromise);
+            console.info(`Movil Bus sincronizado con datos: ${state.source}`);
+        } catch (error) {
+            console.error("No se pudo cargar la API en vivo:", error);
+            if (cachedPayload) {
+                setDataStatus("No se pudo actualizar la API. Mostrando cache guardado.", "fallback");
+            } else {
+                setDataStatus("No se pudo cargar datos en este momento.", "fallback");
+            }
+        } finally {
+            syncInFlight = false;
+            scheduleAutoRefresh();
+        }
     }
 
     document.addEventListener("DOMContentLoaded", init);

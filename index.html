@@ -47,23 +47,112 @@
         <section class="stats-strip reveal">
             <div class="container stats-grid">
                 <article class="stat-card">
-                    <h3 id="totalKm">0</h3>
+                    <h3 id="totalKm">--</h3>
                     <p>KM Recorridos</p>
                 </article>
                 <article class="stat-card">
-                    <h3 id="activeDrivers">0</h3>
+                    <h3 id="activeDrivers">--</h3>
                     <p>Total conductores</p>
                 </article>
                 <article class="stat-card">
-                    <h3 id="completedRoutes">0</h3>
-                    <p>Rutas Completadas</p>
+                    <h3 id="completedRoutes">--</h3>
+                    <p>Trabajos</p>
                 </article>
                 <article class="stat-card">
-                    <h3 id="activeRoutesCount">0</h3>
+                    <h3 id="activeRoutesCount">--</h3>
                     <p>Trabajos activos</p>
                 </article>
             </div>
+            <p id="dataStatus" class="data-status" data-status="loading">Cargando datos en vivo...</p>
         </section>
+        <script>
+            (function restoreStatsFromCache() {
+                try {
+                    const statsRaw = window.localStorage.getItem("movilbus:stats-snapshot:v2");
+                    if (statsRaw) {
+                        const statsSnapshot = JSON.parse(statsRaw);
+                        const totalKm = Number(statsSnapshot.totalKm) || 0;
+                        const totalDrivers = Number(statsSnapshot.totalDrivers) || 0;
+                        const completedRoutes = Number(statsSnapshot.completedRoutes) || 0;
+                        const activeJobsCount = Number(statsSnapshot.activeJobsCount) || 0;
+                        const hasUsefulData =
+                            totalKm > 0 ||
+                            totalDrivers > 0 ||
+                            completedRoutes > 0 ||
+                            activeJobsCount > 0;
+                        if (hasUsefulData) {
+                            const format = new Intl.NumberFormat("es-PE");
+                            const writeNumber = (id, value) => {
+                                const element = document.getElementById(id);
+                                if (element) element.textContent = format.format(Math.round(Number(value) || 0));
+                            };
+
+                            writeNumber("totalKm", totalKm);
+                            writeNumber("activeDrivers", totalDrivers);
+                            writeNumber("completedRoutes", completedRoutes);
+                            writeNumber("activeRoutesCount", activeJobsCount);
+
+                            const status = document.getElementById("dataStatus");
+                            if (status) {
+                                status.textContent = "Mostrando ultimo snapshot local...";
+                                status.dataset.status = "stale";
+                            }
+                            return;
+                        }
+                    }
+
+                    const raw = window.localStorage.getItem("movilbus:company-data:v3");
+                    if (!raw) return;
+
+                    const stored = JSON.parse(raw);
+                    const payload = stored && stored.payload;
+                    if (!payload) return;
+
+                    const members = Array.isArray(payload.members) ? payload.members : [];
+                    const jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
+                    const recentJobs = Array.isArray(payload.recentJobs) ? payload.recentJobs : [];
+                    if (members.length === 0 || jobs.length === 0) return;
+
+                    const toNumber = (value) => {
+                        const number = Number(value);
+                        return Number.isFinite(number) ? number : 0;
+                    };
+                    const normalize = (value) => String(value || "")
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .toLowerCase();
+                    const format = new Intl.NumberFormat("es-PE");
+                    const totalKm = toNumber(payload.companyTotals && payload.companyTotals.totalDistance)
+                        || members.reduce((sum, member) => sum + toNumber(member.totalKm), 0);
+                    const totalDrivers = members.filter((member) => !normalize(member.role).includes("owner")).length;
+                    const completedRoutes = toNumber(payload.companyTotals && payload.companyTotals.totalJobs)
+                        || jobs.filter((job) => normalize(job.status) === "completed").length;
+                    const activeJobsSource = recentJobs.length > 0 ? recentJobs : jobs;
+                    const activeJobsCount = activeJobsSource.filter((job) => {
+                        const status = normalize(job.status);
+                        return status === "in_progress" || status === "in progress" || status === "in-progress";
+                    }).length;
+
+                    const writeNumber = (id, value) => {
+                        const element = document.getElementById(id);
+                        if (element) element.textContent = format.format(Math.round(value || 0));
+                    };
+
+                    writeNumber("totalKm", totalKm);
+                    writeNumber("activeDrivers", totalDrivers);
+                    writeNumber("completedRoutes", completedRoutes);
+                    writeNumber("activeRoutesCount", activeJobsCount);
+
+                    const status = document.getElementById("dataStatus");
+                    if (status) {
+                        status.textContent = "Mostrando ultimo cache local...";
+                        status.dataset.status = "stale";
+                    }
+                } catch (error) {
+                    console.warn("No se pudo restaurar el cache inicial:", error);
+                }
+            })();
+        </script>
 
         <section class="section about-section reveal" id="nosotros">
             <div class="container">
@@ -159,6 +248,8 @@
             <div id="modalBody"></div>
         </div>
     </aside>
+
+    <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
 
     <script src="js/utils.js" defer></script>
     <script src="js/api.js" defer></script>

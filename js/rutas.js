@@ -92,6 +92,7 @@ window.RoutesModule = ((AppUtils) => {
         zoomOutBtn: null,
         resetBtn: null,
         scale: MAP_MIN_SCALE,
+        markerCompensation: 1,
         offsetX: 0,
         offsetY: 0,
         dragging: false,
@@ -240,14 +241,6 @@ window.RoutesModule = ((AppUtils) => {
             }
         }
 
-        for (const candidate of candidates) {
-            const aliasEntry = Object.entries(CITY_ALIASES).find(([alias]) => candidate.includes(alias));
-            if (aliasEntry) return aliasEntry[1];
-
-            const directEntry = Object.keys(CITY_POSITIONS).find((key) => candidate.includes(key));
-            if (directEntry) return directEntry;
-        }
-
         return null;
     }
 
@@ -288,10 +281,25 @@ window.RoutesModule = ((AppUtils) => {
         mapViewState.zoomOutBtn.disabled = mapViewState.scale <= MAP_MIN_SCALE + 0.01;
     }
 
+    function getMarkerCompensationByScale(scale) {
+        const finalSizeMultiplier = clamp(1.05 - (scale - 1) * 0.12, 0.68, 1.05);
+        return finalSizeMultiplier / Math.max(scale, 0.001);
+    }
+
+    function applyMarkerCompensation() {
+        const compensation = getMarkerCompensationByScale(mapViewState.scale);
+        mapViewState.markerCompensation = compensation;
+
+        document.querySelectorAll(".route-marker").forEach((marker) => {
+            marker.style.setProperty("--marker-compensation", compensation.toFixed(4));
+        });
+    }
+
     function applyMapTransform() {
         if (!mapViewState.canvas) return;
         clampMapOffsets();
         mapViewState.canvas.style.transform = `translate(${mapViewState.offsetX}px, ${mapViewState.offsetY}px) scale(${mapViewState.scale})`;
+        applyMarkerCompensation();
         updateMapControls();
     }
 
@@ -589,7 +597,9 @@ window.RoutesModule = ((AppUtils) => {
 
             const originPos = getCityPosition(route.origin, route.originId);
             const destinationPos = getCityPosition(route.destination, route.destinationId);
-            const markerPos = midpoint(originPos, destinationPos);
+            const markerPos = originPos && destinationPos
+                ? midpoint(originPos, destinationPos)
+                : null;
 
             if (originPos && destinationPos && mapRoutesLayer) {
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -602,26 +612,7 @@ window.RoutesModule = ((AppUtils) => {
                 mapRoutesLayer.appendChild(line);
             }
 
-            if (originPos) {
-                mapMarkers.appendChild(createMarker(
-                    route,
-                    originPos,
-                    `Origen: ${route.origin}`,
-                    "route-marker-origin",
-                    handleSelect
-                ));
-            }
-
-            if (destinationPos) {
-                mapMarkers.appendChild(createMarker(
-                    route,
-                    destinationPos,
-                    `Destino: ${route.destination}`,
-                    "route-marker-destination",
-                    handleSelect
-                ));
-            }
-
+            // Render a single marker per route to avoid noisy/duplicated points.
             if (markerPos) {
                 mapMarkers.appendChild(createMarker(
                     route,
