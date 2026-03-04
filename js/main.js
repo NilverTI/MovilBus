@@ -5,6 +5,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         source: "api",
         members: [],
         jobs: [],
+        activeServerJobs: [],
         recentDriverRoutes: [],
         monthKmByDriver: new Map(),
         assignedRouteByDriver: new Map(),
@@ -34,9 +35,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function renderStats() {
         const totalKm = state.members.reduce((sum, member) => sum + member.totalKm, 0);
         const completedRoutes = state.jobs.filter((job) => job.status === "completed").length;
-        const activeJobs = state.recentDriverRoutes;
-        const activeDrivers = new Set(activeJobs.map((job) => job.userId || AppUtils.normalizeText(job.driverName)).filter(Boolean)).size;
-        const activeRoutesCount = new Set(activeJobs.map((job) => `${job.origin}-${job.destination}`)).size;
+        const totalDrivers = state.members.length;
+        const activeJobsCount = state.recentDriverRoutes.length;
 
         const totalKmEl = document.getElementById("totalKm");
         const completedRoutesEl = document.getElementById("completedRoutes");
@@ -45,8 +45,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         if (totalKmEl) totalKmEl.textContent = AppUtils.formatNumber(totalKm);
         if (completedRoutesEl) completedRoutesEl.textContent = AppUtils.formatNumber(completedRoutes);
-        if (activeDriversEl) activeDriversEl.textContent = AppUtils.formatNumber(activeDrivers);
-        if (activeRoutesCountEl) activeRoutesCountEl.textContent = AppUtils.formatNumber(activeRoutesCount);
+        if (activeDriversEl) activeDriversEl.textContent = AppUtils.formatNumber(totalDrivers);
+        if (activeRoutesCountEl) activeRoutesCountEl.textContent = AppUtils.formatNumber(activeJobsCount);
     }
 
     function setupRevealOnScroll() {
@@ -151,14 +151,26 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             userId: job.userId || memberByName.get(AppUtils.normalizeText(job.driverName)) || 0
         }));
 
+        state.activeServerJobs = recentCandidateJobs.filter((job) => {
+            const status = AppUtils.normalizeText(job.status || "");
+            return status === "in_progress" || status === "in progress" || status === "in-progress";
+        });
+
+        if (state.activeServerJobs.length === 0) {
+            state.activeServerJobs = state.jobs.filter((job) => {
+                const status = AppUtils.normalizeText(job.status || "");
+                return status === "in_progress" || status === "in progress" || status === "in-progress";
+            });
+        }
+
         state.recentDriverRoutes = RoutesModule.getLatestOpenRoutePerDriverInLastHours(
-            recentCandidateJobs,
+            state.activeServerJobs,
             RoutesModule.LAST_ROUTE_WINDOW_HOURS
         );
 
         if (state.recentDriverRoutes.length === 0) {
             state.recentDriverRoutes = RoutesModule.getLatestOpenRoutePerDriverInLastHours(
-                state.jobs,
+                state.activeServerJobs,
                 RoutesModule.LAST_ROUTE_WINDOW_HOURS
             );
         }

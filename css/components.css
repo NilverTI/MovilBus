@@ -24,12 +24,13 @@
     font-size: 0.88rem;
     padding: 6px 2px;
     border-radius: 10px;
-    transition: color 0.2s ease, opacity 0.2s ease;
+    transition: color 0.2s ease, opacity 0.2s ease, background 0.2s ease;
 }
 
 .nav-links a:hover,
 .nav-links a.active {
-    color: rgba(255, 255, 255, 0.93);
+    color: var(--orange);
+    background: rgba(255, 106, 0, 0.14);
 }
 
 .nav-links a:last-child {
@@ -43,11 +44,17 @@
 
 .navbar.scrolled .nav-links a:hover,
 .navbar.scrolled .nav-links a.active {
-    color: #111827;
+    color: var(--orange-strong);
+    background: rgba(255, 106, 0, 0.12);
 }
 
 .navbar.scrolled .nav-links a:last-child {
     color: #111827;
+}
+
+.navbar.scrolled .nav-links a:last-child.active,
+.nav-links a:last-child.active {
+    color: var(--orange-strong);
 }
 
 .hero h1 span,
@@ -594,28 +601,42 @@ select.invalid {
 }
 
 .footer-wrap {
+    width: min(1320px, 94vw);
+    margin: 0 auto;
+}
+
+.footer-main {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 18px;
+}
+
+.footer-brand-left {
+    grid-column: 1;
+    justify-self: start;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.footer-center {
+    grid-column: 2;
     display: grid;
     justify-items: center;
     text-align: center;
-    gap: 16px;
+    gap: 10px;
 }
 
-.footer-brand-center {
-    display: inline-grid;
-    justify-items: center;
-    gap: 8px;
-    text-decoration: none;
-}
-
-.footer h4 {
-    margin: 0;
-    font-family: "Futurista", "Segoe UI", sans-serif;
-    letter-spacing: 0.08em;
-    color: #f9fafb;
+.footer-right {
+    grid-column: 3;
+    justify-self: end;
+    display: grid;
+    justify-items: end;
+    gap: 10px;
 }
 
 .footer-logo {
-    width: 142px;
+    width: 170px;
     max-width: 100%;
     height: auto;
     object-fit: contain;
@@ -645,32 +666,45 @@ select.invalid {
     background: rgba(255, 106, 0, 0.15);
 }
 
-.footer-social-single {
-    padding-top: 2px;
-}
-
-.footer-social-single a {
+.footer-tiktok {
     text-decoration: none;
-    border: 1px solid rgba(255, 106, 0, 0.48);
+    border: 1px solid rgba(255, 155, 64, 0.85);
     border-radius: 999px;
     color: #fff;
-    padding: 8px 14px;
-    background: rgba(255, 106, 0, 0.16);
-    transition: transform 0.2s ease, background 0.2s ease;
+    padding: 9px 18px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: linear-gradient(90deg, rgba(255, 106, 0, 0.34), rgba(255, 80, 0, 0.18));
+    box-shadow:
+        0 0 0 1px rgba(255, 106, 0, 0.2),
+        0 10px 24px rgba(255, 106, 0, 0.28);
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.footer-social-single a:hover {
+.footer-tiktok:hover {
     transform: translateY(-2px);
-    background: rgba(255, 106, 0, 0.24);
+    background: linear-gradient(90deg, rgba(255, 126, 40, 0.46), rgba(255, 88, 0, 0.32));
+    box-shadow:
+        0 0 0 1px rgba(255, 126, 40, 0.35),
+        0 14px 28px rgba(255, 106, 0, 0.34);
 }
 
 .footer-copy {
     margin: 8px 0 0;
     padding-top: 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    width: min(100%, 960px);
-    color: #9ca3af;
+    width: min(100%, 760px);
+    color: #e5e7eb;
     font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.footer-copy strong {
+    font-weight: 700;
+}
+
+.footer-accent {
+    color: var(--orange);
 }
 
 .modal {
@@ -826,6 +860,30 @@ select.invalid {
 
     .rank-km {
         font-size: 0.96rem;
+    }
+
+    .footer-main {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 14px;
+    }
+
+    .footer-center {
+        grid-column: 1;
+    }
+
+    .footer-brand-left {
+        justify-self: center;
+    }
+
+    .footer-right {
+        grid-column: 1;
+        justify-self: center;
+        justify-items: center;
+    }
+
+    .footer-logo {
+        width: 145px;
     }
 
     .footer-nav {
