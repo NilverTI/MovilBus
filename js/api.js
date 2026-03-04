@@ -1,4 +1,15 @@
-﻿"use strict";
+﻿/* 
+   ___  _____    ___
+  /   ||  _  |  /   | _
+ / /| || |/' | / /| |(_)
+/ /_| ||  /| |/ /_| |
+\_CONEXIÓN INESTABLE| _
+    |_/ \___/     |_/(_)
+
+  https://movilbuspsv.netlify.app/
+*/
+
+"use strict";
 
 window.AppApi = ((AppUtils) => {
     const API_BASE = "https://e.truckyapp.com/api/v1/company/41407";

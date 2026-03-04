@@ -1,4 +1,15 @@
-﻿@font-face {
+/* 
+   ___  _____    ___
+  /   ||  _  |  /   | _
+ / /| || |/' | / /| |(_)
+/ /_| ||  /| |/ /_| |
+\_CONEXIÓN INESTABLE| _
+    |_/ \___/     |_/(_)
+
+  https://movilbuspsv.netlify.app/
+*/
+
+@font-face {
     font-family: "Futurista";
     src: url("../assets/fonts/futurista.woff2") format("woff2");
     font-display: swap;
@@ -66,4 +77,7 @@ img {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+body {
+    overflow-x: hidden;
 }

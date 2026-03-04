@@ -1,4 +1,15 @@
-﻿"use strict";
+/* 
+   ___  _____    ___
+  /   ||  _  |  /   | _
+ / /| || |/' | / /| |(_)
+/ /_| ||  /| |/ /_| |
+\_CONEXIÓN INESTABLE| _
+    |_/ \___/     |_/(_)
+
+  https://movilbuspsv.netlify.app/
+*/
+
+"use strict";
 
 window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule, FormModule) => {
     const NAV_ITEMS = [
@@ -47,9 +58,23 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                         <a class="brand" href="/#inicio">
                             <img class="brand-logo" src="assets/img/logo.png" alt="Movil Bus">
                         </a>
-                        <nav class="nav-links" aria-label="Navegacion principal">
-                            ${navLinks}
-                        </nav>
+                        <div class="nav-actions">
+                            <button
+                                class="nav-toggle"
+                                id="navToggle"
+                                type="button"
+                                aria-label="Abrir menu"
+                                aria-controls="siteNav"
+                                aria-expanded="false"
+                            >
+                                <span class="nav-toggle-line"></span>
+                                <span class="nav-toggle-line"></span>
+                                <span class="nav-toggle-line"></span>
+                            </button>
+                            <nav class="nav-links" id="siteNav" aria-label="Navegacion principal">
+                                ${navLinks}
+                            </nav>
+                        </div>
                     </div>
                 </header>
             `;
@@ -160,6 +185,43 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function setupNavigation() {
         const navbar = document.querySelector(".navbar");
         if (!navbar) return;
+        const navToggle = document.getElementById("navToggle");
+        const siteNav = document.getElementById("siteNav");
+
+        const closeMobileNav = () => {
+            if (!siteNav || !navToggle) return;
+            siteNav.classList.remove("open");
+            navToggle.classList.remove("open");
+            navToggle.setAttribute("aria-expanded", "false");
+        };
+
+        if (navToggle && siteNav) {
+            navToggle.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const isOpen = siteNav.classList.toggle("open");
+                navToggle.classList.toggle("open", isOpen);
+                navToggle.setAttribute("aria-expanded", String(isOpen));
+            });
+
+            siteNav.querySelectorAll("a").forEach((link) => {
+                link.addEventListener("click", () => closeMobileNav());
+            });
+
+            document.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (siteNav.contains(target) || navToggle.contains(target)) return;
+                closeMobileNav();
+            });
+
+            window.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") closeMobileNav();
+            });
+
+            window.addEventListener("resize", () => {
+                if (window.innerWidth > 860) closeMobileNav();
+            });
+        }
 
         const setActiveByScroll = () => {
             const scrollPoint = window.scrollY + 140;
@@ -186,6 +248,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         window.addEventListener("hashchange", () => {
             const key = getHashNavKey();
             setNavActive(key);
+            closeMobileNav();
         });
     }
 
