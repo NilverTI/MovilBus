@@ -13,6 +13,9 @@
 
 window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule, FormModule) => {
     const AUTO_REFRESH_MS = 2 * 60 * 1000;
+    const HERO_CAROUSEL_INTERVAL_MS = 7000;
+    const RADIO_STREAM_URL = "https://streaming.radio.co/s9c2f6713c/listen";
+    const RADIO_VOLUME_STORAGE_KEY = "movilbus:radio-volume:v1";
     const STATS_SNAPSHOT_KEY = "movilbus:stats-snapshot:v2";
     const NAV_ITEMS = [
         { key: "inicio", label: "Inicio", href: "#inicio" },
@@ -76,7 +79,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 <header class="navbar" id="top">
                     <div class="container navbar-content">
                         <a class="brand" href="/#inicio">
-                            <img class="brand-logo" src="assets/img/logo.png" alt="Movil Bus">
+                            <img class="brand-logo" src="assets/img/logo.svg" alt="Movil Bus">
                         </a>
                         <div class="nav-actions">
                             <button
@@ -106,15 +109,18 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                     <div class="container footer-wrap">
                         <div class="footer-main">
                             <a class="footer-brand-left" href="/#inicio">
-                                <img src="assets/img/logo.png" alt="Logo Movil Bus" class="footer-logo">
+                                <img src="assets/img/logo.svg" alt="Logo Movil Bus" class="footer-logo">
                             </a>
 
                             <div class="footer-center">
                                 <nav class="footer-nav" aria-label="Navegacion inferior">
                                     ${navLinks}
-                                    <a class="footer-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
                                 </nav>
-                                <p class="footer-copy"><strong>2026 Copyright MovilBus - Desarrollado por <span class="footer-accent">NILVER T.I</span></strong></p>
+                                <p class="footer-copy"><strong>2026 Copyright MovilBus - Desarrollado por <a class="footer-accent footer-dev-link" href="https://nilverti.bio.link/" target="_blank" rel="noopener noreferrer">NILVER T.I</a></strong></p>
+                            </div>
+
+                            <div class="footer-right">
+                                <a class="footer-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
                             </div>
                         </div>
                     </div>
@@ -395,6 +401,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function setupParallax() {
         const hero = document.querySelector(".hero");
         if (!hero) return;
+        const carouselSlides = [...hero.querySelectorAll(".hero-carousel-slide")];
 
         const isSmallScreen = window.matchMedia("(max-width: 1100px)").matches;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -403,7 +410,14 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         let ticking = false;
         const updateParallax = () => {
             const y = Math.min(window.scrollY * 0.12, 90);
-            hero.style.backgroundPosition = `center calc(66% + ${y}px)`;
+            const position = `center calc(66% + ${y}px)`;
+            if (carouselSlides.length) {
+                carouselSlides.forEach((slide) => {
+                    slide.style.backgroundPosition = position;
+                });
+            } else {
+                hero.style.backgroundPosition = position;
+            }
             ticking = false;
         };
 
@@ -414,6 +428,207 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             ticking = true;
             window.requestAnimationFrame(updateParallax);
         }, { passive: true });
+    }
+
+    function setupRadioPlayer() {
+        const widget = document.getElementById("radioWidget");
+        const toggleButton = document.getElementById("radioToggleButton");
+        const toggleIcon = document.getElementById("radioToggleIcon");
+        const volumeRange = document.getElementById("radioVolumeRange");
+
+        if (!widget || !toggleButton || !toggleIcon || !volumeRange) return;
+        if (widget.dataset.ready === "true") return;
+        widget.dataset.ready = "true";
+
+        const radio = new Audio(RADIO_STREAM_URL);
+        radio.preload = "none";
+
+        const updateUiState = (isPlaying) => {
+            widget.dataset.state = isPlaying ? "playing" : "paused";
+            toggleButton.classList.toggle("is-playing", isPlaying);
+            toggleIcon.textContent = isPlaying ? "❚❚" : "▶";
+            toggleButton.setAttribute("aria-label", isPlaying ? "Pausar radio" : "Reproducir radio");
+        };
+
+        const applyVolume = (value) => {
+            const normalized = Math.max(0, Math.min(100, Number(value) || 0));
+            radio.volume = normalized / 100;
+            volumeRange.value = String(normalized);
+            try {
+                window.localStorage.setItem(RADIO_VOLUME_STORAGE_KEY, String(normalized));
+            } catch (error) {
+                // Ignore private mode/quota errors.
+            }
+        };
+
+        try {
+            const savedVolume = window.localStorage.getItem(RADIO_VOLUME_STORAGE_KEY);
+            applyVolume(savedVolume ?? 65);
+        } catch (error) {
+            applyVolume(65);
+        }
+
+        updateUiState(false);
+
+        toggleButton.addEventListener("click", async () => {
+            if (radio.paused) {
+                try {
+                    await radio.play();
+                } catch (error) {
+                    console.warn("No se pudo reproducir la radio:", error);
+                    updateUiState(false);
+                }
+                return;
+            }
+            radio.pause();
+        });
+
+        volumeRange.addEventListener("input", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+            applyVolume(target.value);
+        });
+
+        radio.addEventListener("play", () => updateUiState(true));
+        radio.addEventListener("pause", () => updateUiState(false));
+        radio.addEventListener("ended", () => updateUiState(false));
+    }
+
+    function setupHeroCarousel() {
+        const hero = document.querySelector(".hero");
+        if (!hero || hero.dataset.carouselReady === "true") return;
+        hero.dataset.carouselReady = "true";
+
+        const slideCandidates = [
+            ["assets/img/Movil.webp", "assets/img/Movil.jpeg", "assets/img/Movil.svg"],
+            ["assets/img/Movil2.webp", "assets/img/Movil2.jpeg", "assets/img/Movil2.svg"],
+            ["assets/img/Movil3.webp", "assets/img/Movil3.jpeg", "assets/img/Movil3.svg"]
+        ];
+        const preloadImage = (src, priority = "auto") => new Promise((resolve, reject) => {
+            const image = new Image();
+            image.decoding = "async";
+            if ("fetchPriority" in image) image.fetchPriority = priority;
+            image.onload = () => resolve(src);
+            image.onerror = reject;
+            image.src = src;
+        });
+
+        const preloadFirstAvailable = async (candidates, priority = "auto") => {
+            for (const source of candidates) {
+                try {
+                    return await preloadImage(source, priority);
+                } catch (error) {
+                    // Try next source format.
+                }
+            }
+            return "";
+        };
+
+        const initialize = async () => {
+            const resolvedSlides = await Promise.all(
+                slideCandidates.map((candidates, index) => preloadFirstAvailable(candidates, index === 0 ? "high" : "low"))
+            );
+            const slides = resolvedSlides.filter(Boolean);
+            if (!slides.length) return;
+
+            hero.classList.add("has-carousel");
+
+            const track = document.createElement("div");
+            track.className = "hero-carousel-track";
+
+            const baseSlide = document.createElement("div");
+            baseSlide.className = "hero-carousel-slide is-active";
+            baseSlide.style.backgroundImage = `url("${slides[0]}")`;
+
+            const incomingSlide = document.createElement("div");
+            incomingSlide.className = "hero-carousel-slide";
+
+            track.appendChild(baseSlide);
+            track.appendChild(incomingSlide);
+            hero.insertBefore(track, hero.firstChild);
+
+            const layers = [baseSlide, incomingSlide];
+            let activeLayerIndex = 0;
+            let currentIndex = 0;
+
+            const applySlide = (index, instant = false) => {
+                if (!slides[index]) return;
+                if (index === currentIndex && !instant) return;
+
+                const currentLayer = layers[activeLayerIndex];
+                const nextLayerIndex = activeLayerIndex === 0 ? 1 : 0;
+                const nextLayer = layers[nextLayerIndex];
+
+                nextLayer.style.backgroundImage = `url("${slides[index]}")`;
+                nextLayer.classList.add("is-active");
+                nextLayer.classList.remove("is-exiting");
+
+                if (instant) {
+                    currentLayer.classList.remove("is-active");
+                    currentLayer.classList.remove("is-exiting");
+                } else {
+                    currentLayer.classList.remove("is-active");
+                    currentLayer.classList.add("is-exiting");
+                    window.setTimeout(() => {
+                        currentLayer.classList.remove("is-exiting");
+                    }, 950);
+                }
+
+                activeLayerIndex = nextLayerIndex;
+                currentIndex = index;
+            };
+            const goToSlide = (index) => {
+                const normalizedIndex = (index + slides.length) % slides.length;
+                applySlide(normalizedIndex);
+            };
+            const showPrev = () => goToSlide(currentIndex - 1);
+            const showNext = () => goToSlide(currentIndex + 1);
+
+            applySlide(0, true);
+
+            if (slides.length < 2) return;
+
+            const controls = document.createElement("div");
+            controls.className = "hero-carousel-controls";
+            controls.innerHTML = `
+                <button class="hero-carousel-btn" type="button" aria-label="Imagen anterior">&lt;</button>
+                <button class="hero-carousel-btn" type="button" aria-label="Imagen siguiente">&gt;</button>
+            `;
+            hero.appendChild(controls);
+
+            const [prevButton, nextButton] = controls.querySelectorAll(".hero-carousel-btn");
+
+            let autoPlayId = 0;
+            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            const stopAutoPlay = () => {
+                if (!autoPlayId) return;
+                window.clearInterval(autoPlayId);
+                autoPlayId = 0;
+            };
+            const startAutoPlay = () => {
+                if (reducedMotion) return;
+                stopAutoPlay();
+                autoPlayId = window.setInterval(showNext, HERO_CAROUSEL_INTERVAL_MS);
+            };
+            const manualChange = (moveFn) => {
+                moveFn();
+                startAutoPlay();
+            };
+
+            prevButton?.addEventListener("click", () => manualChange(showPrev));
+            nextButton?.addEventListener("click", () => manualChange(showNext));
+
+            controls.addEventListener("mouseenter", stopAutoPlay);
+            controls.addEventListener("mouseleave", startAutoPlay);
+            controls.addEventListener("focusin", stopAutoPlay);
+            controls.addEventListener("focusout", startAutoPlay);
+
+            startAutoPlay();
+        };
+
+        initialize().catch((error) => {
+            console.warn("No se pudo inicializar el carrusel del hero:", error);
+        });
     }
 
     function applyPayload(payload) {
@@ -521,6 +736,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         setNavActive(getHashNavKey());
         setupRevealOnScroll();
         setupNavigation();
+        setupHeroCarousel();
+        setupRadioPlayer();
         setupParallax();
         RoutesModule.setupModalEvents();
         WorkersModule.setupModalEvents();

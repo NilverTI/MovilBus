@@ -19,11 +19,24 @@
     <meta name="description"
         content="Movil Bus: servidor de Euro Truck Simulator inspirado en rutas interprovinciales del Perú.">
     <link rel="icon" type="image/webp" href="assets/img/icons/icon.webp">
+    <link rel="preload" as="image" href="assets/img/Movil2.webp" type="image/webp" fetchpriority="high">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body data-page="index">
     <div id="siteHeader"></div>
+
+    <aside class="radio-widget" id="radioWidget" aria-label="Radio Movil Bus">
+        <img src="assets/img/icons/PSVLOGO.png" alt="Portada Radio Movil Bus" class="radio-cover">
+        <div class="radio-widget-overlay">
+            <p class="radio-widget-title">RADIO DE:</p>
+            <button id="radioToggleButton" class="radio-toggle-button" type="button" aria-label="Reproducir radio">
+                <span id="radioToggleIcon" class="radio-toggle-icon">▶</span>
+            </button>
+            <input id="radioVolumeRange" class="radio-volume-range" type="range" min="0" max="100" value="65"
+                aria-label="Control de volumen de radio">
+        </div>
+    </aside>
 
     <main>
         <section class="hero" id="inicio">
