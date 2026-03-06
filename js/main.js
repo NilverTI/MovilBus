@@ -3,20 +3,28 @@
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
 / /_| ||  /| |/ /_| |
-\_CONEXION INESTABLE| _
+\_CONEXIÓN INESTABLE| _
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
+
+  Main Application Module - Punto de entrada principal
 */
 
 "use strict";
 
 window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule, FormModule) => {
+    // ============================================
+    // CONSTANTES
+    // ============================================
     const AUTO_REFRESH_MS = 2 * 60 * 1000;
     const HERO_CAROUSEL_INTERVAL_MS = 7000;
     const RADIO_STREAM_URL = "https://streaming.radio.co/s9c2f6713c/listen";
     const RADIO_VOLUME_STORAGE_KEY = "movilbus:radio-volume:v1";
     const STATS_SNAPSHOT_KEY = "movilbus:stats-snapshot:v2";
+    const SESSION_LOADED_KEY = "movilbus:session-loaded:v1";
+    const DISCLAIMER_KEY = "movilbus:disclaimer-dismissed:v1";
+
     const NAV_ITEMS = [
         { key: "inicio", label: "Inicio", href: "#inicio" },
         { key: "nosotros", label: "Nosotros", href: "#nosotros" },
@@ -26,6 +34,9 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         { key: "postula", label: "Postula", href: "#postula" }
     ];
 
+    // ============================================
+    // ESTADO
+    // ============================================
     const state = {
         source: "api",
         members: [],
@@ -37,9 +48,14 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         assignedRouteByDriver: new Map(),
         routes: []
     };
+
     let syncInFlight = false;
     let autoRefreshTimerId = null;
     let toastTimerId = null;
+
+    // ============================================
+    // NAVEGACIÓN
+    // ============================================
 
     function setNavActive(key) {
         document.querySelectorAll("[data-nav-key]").forEach((link) => {
@@ -52,6 +68,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         return NAV_ITEMS.some((item) => item.key === hash) ? hash : "inicio";
     }
 
+    // ============================================
+    // RENDERIZADO DEL SITIO
+    // ============================================
+
     function renderSiteFrame() {
         const headerHost = document.getElementById("siteHeader");
         const footerHost = document.getElementById("siteFooter");
@@ -62,16 +82,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 return `<a class="${extraClass}" href="${item.href}" data-nav-key="${item.key}">${item.label}</a>`;
             })
             .join("");
+
         const headerNavLinks = `
             ${navLinks}
-            <a
-                class="nav-tiktok"
-                href="https://www.tiktok.com/@movil.bus.psv"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                TikTok
-            </a>
+            <a class="nav-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
         `;
 
         if (headerHost) {
@@ -82,14 +96,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                             <img class="brand-logo" src="assets/img/logo.svg" alt="Movil Bus">
                         </a>
                         <div class="nav-actions">
-                            <button
-                                class="nav-toggle"
-                                id="navToggle"
-                                type="button"
-                                aria-label="Abrir menu"
-                                aria-controls="siteNav"
-                                aria-expanded="false"
-                            >
+                            <button class="nav-toggle" id="navToggle" type="button" aria-label="Abrir menu" aria-controls="siteNav" aria-expanded="false">
                                 <span class="nav-toggle-line"></span>
                                 <span class="nav-toggle-line"></span>
                                 <span class="nav-toggle-line"></span>
@@ -111,14 +118,12 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                             <a class="footer-brand-left" href="/#inicio">
                                 <img src="assets/img/logo.svg" alt="Logo Movil Bus" class="footer-logo">
                             </a>
-
                             <div class="footer-center">
                                 <nav class="footer-nav" aria-label="Navegacion inferior">
                                     ${navLinks}
                                 </nav>
                                 <p class="footer-copy"><strong>2026 Copyright MovilBus - Desarrollado por <a class="footer-accent footer-dev-link" href="https://nilverti.bio.link/" target="_blank" rel="noopener noreferrer">NILVER T.I</a></strong></p>
                             </div>
-
                             <div class="footer-right">
                                 <a class="footer-tiktok" href="https://www.tiktok.com/@movil.bus.psv" target="_blank" rel="noopener noreferrer">TikTok</a>
                             </div>
@@ -128,6 +133,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             `;
         }
     }
+
+    // ============================================
+    // CARGA DE SECCIONES
+    // ============================================
 
     async function loadSectionPartials() {
         const hosts = [...document.querySelectorAll("[data-include]")];
@@ -147,6 +156,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             }
         }));
     }
+
+    // ============================================
+    // ESTADÍSTICAS
+    // ============================================
 
     function getMonthKmByDriver(jobs) {
         const current = new Date();
@@ -169,8 +182,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     function isOwnerMember(member) {
-        const role = AppUtils.normalizeText(member?.role || "");
-        return role.includes("owner");
+        return AppUtils.normalizeText(member?.role || "").includes("owner");
     }
 
     function renderStats() {
@@ -181,15 +193,17 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         const totalDrivers = state.members.filter((member) => !isOwnerMember(member)).length;
         const activeJobsCount = state.recentDriverRoutes.length;
 
-        const totalKmEl = document.getElementById("totalKm");
-        const completedRoutesEl = document.getElementById("completedRoutes");
-        const activeDriversEl = document.getElementById("activeDrivers");
-        const activeRoutesCountEl = document.getElementById("activeRoutesCount");
+        const elements = {
+            totalKm: document.getElementById("totalKm"),
+            completedRoutes: document.getElementById("completedRoutes"),
+            activeDrivers: document.getElementById("activeDrivers"),
+            activeRoutesCount: document.getElementById("activeRoutesCount")
+        };
 
-        if (totalKmEl) totalKmEl.textContent = AppUtils.formatNumber(totalKm);
-        if (completedRoutesEl) completedRoutesEl.textContent = AppUtils.formatNumber(completedRoutes);
-        if (activeDriversEl) activeDriversEl.textContent = AppUtils.formatNumber(totalDrivers);
-        if (activeRoutesCountEl) activeRoutesCountEl.textContent = AppUtils.formatNumber(activeJobsCount);
+        if (elements.totalKm) elements.totalKm.textContent = AppUtils.formatNumber(totalKm);
+        if (elements.completedRoutes) elements.completedRoutes.textContent = AppUtils.formatNumber(completedRoutes);
+        if (elements.activeDrivers) elements.activeDrivers.textContent = AppUtils.formatNumber(totalDrivers);
+        if (elements.activeRoutesCount) elements.activeRoutesCount.textContent = AppUtils.formatNumber(activeJobsCount);
 
         try {
             window.localStorage.setItem(STATS_SNAPSHOT_KEY, JSON.stringify({
@@ -199,10 +213,14 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 activeJobsCount,
                 savedAt: Date.now()
             }));
-        } catch (error) {
-            // Ignore quota/private mode errors.
+        } catch {
+            // Ignore storage errors
         }
     }
+
+    // ============================================
+    // TOASTS Y ESTADOS
+    // ============================================
 
     function showInfoToast(message, durationMs = 5000) {
         if (!message) return;
@@ -265,48 +283,51 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         });
     }
 
+    // ============================================
+    // PLACEHOLDERS
+    // ============================================
+
     function showDataLoadingPlaceholders() {
-        const routeIndicator = document.getElementById("routeIndicator");
-        const routeList = document.getElementById("routeList");
-        const workersGrid = document.getElementById("workersGrid");
-        const rankingMonth = document.getElementById("rankingMonth");
-        const rankingHistoric = document.getElementById("rankingHistoric");
+        const elements = {
+            routeIndicator: document.getElementById("routeIndicator"),
+            routeList: document.getElementById("routeList"),
+            workersGrid: document.getElementById("workersGrid"),
+            rankingMonth: document.getElementById("rankingMonth"),
+            rankingHistoric: document.getElementById("rankingHistoric")
+        };
 
-        if (routeIndicator) routeIndicator.textContent = "Cargando rutas...";
-
-        if (routeList) {
-            routeList.innerHTML = `
-                <div class="loading-stack" aria-label="Cargando rutas" aria-busy="true">
-                    <div class="loading-skeleton loading-route"></div>
-                    <div class="loading-skeleton loading-route"></div>
-                    <div class="loading-skeleton loading-route"></div>
-                </div>
-            `;
+        if (elements.routeIndicator) {
+            elements.routeIndicator.textContent = "Cargando rutas...";
         }
 
-        if (workersGrid) {
-            workersGrid.innerHTML = `
-                <div class="loading-stack loading-grid" aria-label="Cargando conductores" aria-busy="true">
-                    <div class="loading-skeleton loading-worker"></div>
-                    <div class="loading-skeleton loading-worker"></div>
-                    <div class="loading-skeleton loading-worker"></div>
-                </div>
-            `;
-        }
-
-        const rankingSkeleton = `
-            <div class="loading-stack" aria-label="Cargando ranking" aria-busy="true">
-                <div class="loading-skeleton loading-ranking"></div>
-                <div class="loading-skeleton loading-ranking"></div>
-                <div class="loading-skeleton loading-ranking"></div>
-                <div class="loading-skeleton loading-ranking"></div>
-                <div class="loading-skeleton loading-ranking"></div>
+        const skeletonHTML = (type) => `
+            <div class="loading-stack" aria-label="Cargando ${type}" aria-busy="true">
+                <div class="loading-skeleton loading-${type}"></div>
+                <div class="loading-skeleton loading-${type}"></div>
+                <div class="loading-skeleton loading-${type}"></div>
             </div>
         `;
 
-        if (rankingMonth) rankingMonth.innerHTML = rankingSkeleton;
-        if (rankingHistoric) rankingHistoric.innerHTML = rankingSkeleton;
+        if (elements.routeList) {
+            elements.routeList.innerHTML = skeletonHTML("route");
+        }
+
+        if (elements.workersGrid) {
+            elements.workersGrid.innerHTML = `<div class="loading-stack loading-grid" aria-label="Cargando conductores" aria-busy="true">
+                <div class="loading-skeleton loading-worker"></div>
+                <div class="loading-skeleton loading-worker"></div>
+                <div class="loading-skeleton loading-worker"></div>
+            </div>`;
+        }
+
+        const rankingSkeleton = skeletonHTML("ranking");
+        if (elements.rankingMonth) elements.rankingMonth.innerHTML = rankingSkeleton;
+        if (elements.rankingHistoric) elements.rankingHistoric.innerHTML = rankingSkeleton;
     }
+
+    // ============================================
+    // SCROLL REVEAL
+    // ============================================
 
     function setupRevealOnScroll() {
         const revealItems = document.querySelectorAll(".reveal");
@@ -328,9 +349,14 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         revealItems.forEach((element) => observer.observe(element));
     }
 
+    // ============================================
+    // NAVEGACIÓN
+    // ============================================
+
     function setupNavigation() {
         const navbar = document.querySelector(".navbar");
         if (!navbar) return;
+        
         const navToggle = document.getElementById("navToggle");
         const siteNav = document.getElementById("siteNav");
 
@@ -350,7 +376,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             });
 
             siteNav.querySelectorAll("a").forEach((link) => {
-                link.addEventListener("click", () => closeMobileNav());
+                link.addEventListener("click", closeMobileNav);
             });
 
             document.addEventListener("click", (event) => {
@@ -389,28 +415,34 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         };
 
         onScroll();
-        window.addEventListener("scroll", onScroll);
+        window.addEventListener("scroll", onScroll, { passive: true });
 
         window.addEventListener("hashchange", () => {
-            const key = getHashNavKey();
-            setNavActive(key);
+            setNavActive(getHashNavKey());
             closeMobileNav();
         });
     }
 
+    // ============================================
+    // PARALLAX
+    // ============================================
+
     function setupParallax() {
         const hero = document.querySelector(".hero");
         if (!hero) return;
+        
         const carouselSlides = [...hero.querySelectorAll(".hero-carousel-slide")];
-
         const isSmallScreen = window.matchMedia("(max-width: 1100px)").matches;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        
         if (isSmallScreen || reducedMotion) return;
 
         let ticking = false;
+        
         const updateParallax = () => {
             const y = Math.min(window.scrollY * 0.12, 90);
             const position = `center calc(66% + ${y}px)`;
+            
             if (carouselSlides.length) {
                 carouselSlides.forEach((slide) => {
                     slide.style.backgroundPosition = position;
@@ -430,6 +462,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         }, { passive: true });
     }
 
+    // ============================================
+    // REPRODUCTOR DE RADIO
+    // ============================================
+
     function setupRadioPlayer() {
         const widget = document.getElementById("radioWidget");
         const toggleButton = document.getElementById("radioToggleButton");
@@ -438,6 +474,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         if (!widget || !toggleButton || !toggleIcon || !volumeRange) return;
         if (widget.dataset.ready === "true") return;
+        
         widget.dataset.ready = "true";
 
         const radio = new Audio(RADIO_STREAM_URL);
@@ -456,15 +493,15 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             volumeRange.value = String(normalized);
             try {
                 window.localStorage.setItem(RADIO_VOLUME_STORAGE_KEY, String(normalized));
-            } catch (error) {
-                // Ignore private mode/quota errors.
+            } catch {
+                // Ignore storage errors
             }
         };
 
         try {
             const savedVolume = window.localStorage.getItem(RADIO_VOLUME_STORAGE_KEY);
             applyVolume(savedVolume ?? 65);
-        } catch (error) {
+        } catch {
             applyVolume(65);
         }
 
@@ -494,16 +531,25 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         radio.addEventListener("ended", () => updateUiState(false));
     }
 
+    // ============================================
+    // CARRUSEL HERO
+    // ============================================
+
     function setupHeroCarousel() {
         const hero = document.querySelector(".hero");
         if (!hero || hero.dataset.carouselReady === "true") return;
+        
         hero.dataset.carouselReady = "true";
 
         const slideCandidates = [
-            ["assets/img/Movil.webp", "assets/img/Movil.jpeg", "assets/img/Movil.svg"],
-            ["assets/img/Movil2.webp", "assets/img/Movil2.jpeg", "assets/img/Movil2.svg"],
-            ["assets/img/Movil3.webp", "assets/img/Movil3.jpeg", "assets/img/Movil3.svg"]
+            ["assets/img/Movil.webp"],
+            ["assets/img/Movil1.webp"],
+            ["assets/img/Movil2.webp"],
+            ["assets/img/Movil3.webp"],
+            //["assets/img/Movil4.webp"],
+            ["assets/img/Movil5.webp"],
         ];
+
         const preloadImage = (src, priority = "auto") => new Promise((resolve, reject) => {
             const image = new Image();
             image.decoding = "async";
@@ -517,8 +563,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             for (const source of candidates) {
                 try {
                     return await preloadImage(source, priority);
-                } catch (error) {
-                    // Try next source format.
+                } catch {
+                    // Try next format
                 }
             }
             return "";
@@ -526,8 +572,11 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         const initialize = async () => {
             const resolvedSlides = await Promise.all(
-                slideCandidates.map((candidates, index) => preloadFirstAvailable(candidates, index === 0 ? "high" : "low"))
+                slideCandidates.map((candidates, index) => 
+                    preloadFirstAvailable(candidates, index === 0 ? "high" : "low")
+                )
             );
+            
             const slides = resolvedSlides.filter(Boolean);
             if (!slides.length) return;
 
@@ -577,10 +626,12 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 activeLayerIndex = nextLayerIndex;
                 currentIndex = index;
             };
+
             const goToSlide = (index) => {
                 const normalizedIndex = (index + slides.length) % slides.length;
                 applySlide(normalizedIndex);
             };
+
             const showPrev = () => goToSlide(currentIndex - 1);
             const showNext = () => goToSlide(currentIndex + 1);
 
@@ -591,8 +642,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             const controls = document.createElement("div");
             controls.className = "hero-carousel-controls";
             controls.innerHTML = `
-                <button class="hero-carousel-btn" type="button" aria-label="Imagen anterior">&lt;</button>
-                <button class="hero-carousel-btn" type="button" aria-label="Imagen siguiente">&gt;</button>
+                <button class="hero-carousel-btn" type="button" aria-label="Imagen anterior"><</button>
+                <button class="hero-carousel-btn" type="button" aria-label="Imagen siguiente">></button>
             `;
             hero.appendChild(controls);
 
@@ -600,16 +651,19 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
             let autoPlayId = 0;
             const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            
             const stopAutoPlay = () => {
                 if (!autoPlayId) return;
                 window.clearInterval(autoPlayId);
                 autoPlayId = 0;
             };
+            
             const startAutoPlay = () => {
                 if (reducedMotion) return;
                 stopAutoPlay();
                 autoPlayId = window.setInterval(showNext, HERO_CAROUSEL_INTERVAL_MS);
             };
+
             const manualChange = (moveFn) => {
                 moveFn();
                 startAutoPlay();
@@ -631,6 +685,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         });
     }
 
+    // ============================================
+    // PROCESAMIENTO DE DATOS
+    // ============================================
+
     function applyPayload(payload) {
         if (!payload) return;
 
@@ -639,8 +697,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         state.jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
         state.companyTotals = payload.companyTotals || null;
 
+        // Map member names to IDs for job association
         const memberByName = new Map(state.members.map((member) => [AppUtils.normalizeText(member.name), member.id]));
 
+        // Normalize jobs with userId
         state.jobs = state.jobs.map((job) => ({
             ...job,
             userId: job.userId || memberByName.get(AppUtils.normalizeText(job.driverName)) || 0
@@ -651,16 +711,11 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             userId: job.userId || memberByName.get(AppUtils.normalizeText(job.driverName)) || 0
         }));
 
-        state.activeServerJobs = recentCandidateJobs.filter((job) => {
-            const status = AppUtils.normalizeText(job.status || "");
-            return status === "in_progress" || status === "in progress" || status === "in-progress";
-        });
+        // Get active jobs
+        state.activeServerJobs = recentCandidateJobs.filter((job) => AppUtils.isInProgress(job.status));
 
         if (state.activeServerJobs.length === 0) {
-            state.activeServerJobs = state.jobs.filter((job) => {
-                const status = AppUtils.normalizeText(job.status || "");
-                return status === "in_progress" || status === "in progress" || status === "in-progress";
-            });
+            state.activeServerJobs = state.jobs.filter((job) => AppUtils.isInProgress(job.status));
         }
 
         state.recentDriverRoutes = RoutesModule.getLatestOpenRoutePerDriverInLastHours(
@@ -705,7 +760,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             try {
                 const payload = await TruckyService.loadCompanyData();
                 applyPayload(payload);
-                updateDataStatusFromPayload(payload, "Datos actualizados automaticamente.");
                 bindTotalsRefresh(payload.totalsRefreshPromise);
             } catch (error) {
                 console.warn("No se pudo actualizar automaticamente:", error);
@@ -715,8 +769,75 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         }, AUTO_REFRESH_MS);
     }
 
+    // ============================================
+    // MODAL DE DISCLAIMER
+    // ============================================
+
+    function showDisclaimerAlert() {
+        if (window.localStorage.getItem(DISCLAIMER_KEY)) return;
+
+        const existingModal = document.getElementById("disclaimerModal");
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement("div");
+        modal.id = "disclaimerModal";
+        modal.className = "disclaimer-modal";
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-labelledby", "disclaimerTitle");
+        modal.setAttribute("aria-modal", "true");
+
+        modal.innerHTML = `
+            <div class="disclaimer-overlay"></div>
+            <div class="disclaimer-card">
+                <div class="disclaimer-header">
+                    <img src="assets/img/icons/PSVLOGO.png" alt="PeruServer" class="disclaimer-logo">
+                    <h2 id="disclaimerTitle" class="disclaimer-title">ATENCIÓN</h2>
+                </div>
+                <div class="disclaimer-content">
+                    <p class="disclaimer-text"><strong>Esta NO es la web oficial de MovilBus.</strong></p>
+                    <p class="disclaimer-text">
+                        La web oficial de MovilBus es: <br>
+                        <a href="https://www.movilbus.pe/" target="_blank" rel="noopener noreferrer" class="disclaimer-link">https://www.movilbus.pe/</a>
+                    </p>
+                    <hr class="disclaimer-divider">
+                    <p class="disclaimer-text">
+                        Esta es una página creada específicamente para los jugadores de <strong>Euro Truck Simulator 2</strong> que utilizan el mapa de Perú en <strong>PeruServer.de</strong>
+                    </p>
+                </div>
+                <div class="disclaimer-footer">
+                    <button type="button" class="disclaimer-btn" id="disclaimerAccept">Entendido</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const acceptBtn = document.getElementById("disclaimerAccept");
+        const overlay = modal.querySelector(".disclaimer-overlay");
+
+        const closeModal = () => {
+            modal.classList.add("disclaimer-hidden");
+            window.localStorage.setItem(DISCLAIMER_KEY, "true");
+            setTimeout(() => modal.remove(), 300);
+        };
+
+        acceptBtn?.addEventListener("click", closeModal);
+        overlay?.addEventListener("click", closeModal);
+
+        requestAnimationFrame(() => {
+            modal.classList.add("disclaimer-visible");
+        });
+    }
+
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
+
     async function init() {
         renderSiteFrame();
+        showDisclaimerAlert();
         setDataStatus("Cargando datos en vivo...", "loading");
 
         const livePayloadPromise = TruckyService.loadCompanyData();
@@ -725,7 +846,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         let fullPayloadApplied = false;
 
         if (cachedPayload) {
-            // Paint cache immediately so user never waits at zero metrics.
             applyPayload(cachedPayload);
             setDataStatus("Mostrando datos guardados. Actualizando en segundo plano...", "stale");
             console.info("Movil Bus inicializado con cache local");
@@ -744,7 +864,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         FormModule.setupForm();
 
         if (cachedPayload) {
-            // Re-render once includes are available.
             applyPayload(cachedPayload);
         } else {
             showDataLoadingPlaceholders();
@@ -762,7 +881,15 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             const livePayload = await livePayloadPromise;
             fullPayloadApplied = true;
             applyPayload(livePayload);
-            updateDataStatusFromPayload(livePayload, "Datos sincronizados con la API.", true);
+            
+            const isFirstLoad = !window.sessionStorage.getItem(SESSION_LOADED_KEY);
+            if (isFirstLoad) {
+                window.sessionStorage.setItem(SESSION_LOADED_KEY, "true");
+                updateDataStatusFromPayload(livePayload, "Datos sincronizados con la API.", true);
+            } else {
+                updateDataStatusFromPayload(livePayload, "Datos sincronizados con la API.", false);
+            }
+            
             bindTotalsRefresh(livePayload.totalsRefreshPromise);
             console.info(`Movil Bus sincronizado con datos: ${state.source}`);
         } catch (error) {
@@ -778,6 +905,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         }
     }
 
+    // Iniciar cuando el DOM esté listo
     document.addEventListener("DOMContentLoaded", init);
 
     return {

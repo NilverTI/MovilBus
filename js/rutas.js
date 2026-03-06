@@ -7,15 +7,24 @@
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
+
+  Routes Module - Módulo de rutas y mapa interactivo
 */
 
 "use strict";
 
 window.RoutesModule = ((AppUtils) => {
+    // ============================================
+    // CONSTANTES - Configuración del mapa
+    // ============================================
     const LAST_ROUTE_WINDOW_HOURS = 72;
     const MAP_MIN_SCALE = 1;
     const MAP_MAX_SCALE = 4;
+    const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
+    // ============================================
+    // CONSTANTES - Posiciones de ciudades (%)
+    // ============================================
     const CITY_POSITIONS = {
         lima: { x: 32, y: 64 },
         la_victoria: { x: 32.8, y: 64.1 },
@@ -34,7 +43,7 @@ window.RoutesModule = ((AppUtils) => {
         junin: { x: 41.9, y: 56.6 },
         carhuamayo: { x: 41.5, y: 55.7 },
         huayre: { x: 40.8, y: 55 },
-        cerro_de_pasco: { x: 40.1, y: 54.7 },
+        Cerro_de_pasco: { x: 40.1, y: 54.7 },
         huanuco: { x: 40.7, y: 51.2 },
         ambo: { x: 40, y: 50.3 },
         la_merced: { x: 48.4, y: 58.6 },
@@ -53,13 +62,16 @@ window.RoutesModule = ((AppUtils) => {
         puno: { x: 62, y: 84 }
     };
 
+    // ============================================
+    // CONSTANTES - Alias de ciudades
+    // ============================================
     const CITY_ALIASES = {
         lavictoria: "la_victoria",
         la_oroya: "oroya",
         oroya_psv: "oroya",
-        cerro: "cerro_de_pasco",
-        pasco: "cerro_de_pasco",
-        cerro_de_pasco_psv: "cerro_de_pasco",
+        Cerro: "Cerro_de_pasco",
+        pasco: "Cerro_de_pasco",
+        Cerro_de_pasco_psv: "Cerro_de_pasco",
         huanuco_psv: "huanuco",
         ambo_psv: "ambo",
         junin_psv: "junin",
@@ -85,6 +97,9 @@ window.RoutesModule = ((AppUtils) => {
         tunan_psv: "tunan"
     };
 
+    // ============================================
+    // ESTADO DEL MAPA
+    // ============================================
     const mapViewState = {
         frame: null,
         canvas: null,
@@ -102,10 +117,20 @@ window.RoutesModule = ((AppUtils) => {
         initialized: false
     };
 
+    // ============================================
+    // FUNCIONES DE RUTAS
+    // ============================================
+
+    /**
+     * Obtiene la fecha de referencia de un trabajo
+     */
     function getRouteReferenceDate(job) {
-        return job.updatedAt || job.startedAt || job.completedAt || null;
+        return AppUtils.getJobReferenceDate(job);
     }
 
+    /**
+     * Obtiene las últimas rutas por conductor en las últimas N horas
+     */
     function getLatestRoutePerDriverInLastHours(jobs, hours = LAST_ROUTE_WINDOW_HOURS) {
         const threshold = Date.now() - hours * 60 * 60 * 1000;
 
@@ -114,11 +139,7 @@ window.RoutesModule = ((AppUtils) => {
                 const time = AppUtils.getDateMs(getRouteReferenceDate(job));
                 return time >= threshold;
             })
-            .sort((a, b) => {
-                const dateA = AppUtils.getDateMs(getRouteReferenceDate(a));
-                const dateB = AppUtils.getDateMs(getRouteReferenceDate(b));
-                return dateB - dateA;
-            });
+            .sort(AppUtils.compareByDateDesc);
 
         const byDriver = new Map();
 
@@ -131,17 +152,17 @@ window.RoutesModule = ((AppUtils) => {
         return [...byDriver.values()];
     }
 
+    /**
+     * Verifica si un viaje está en progreso
+     */
     function isOpenTrip(job) {
-        const status = AppUtils.normalizeText(job.status || "");
-        const isInProgress =
-            status === "in_progress" ||
-            status === "in progress" ||
-            status === "in-progress";
-        if (!isInProgress) return false;
-        if (job.completedAt) return false;
-        return true;
+        if (!AppUtils.isInProgress(job.status)) return false;
+        return !job.completedAt;
     }
 
+    /**
+     * Obtiene las últimas rutas abiertas por conductor
+     */
     function getLatestOpenRoutePerDriverInLastHours(jobs, hours = LAST_ROUTE_WINDOW_HOURS) {
         const threshold = Date.now() - hours * 60 * 60 * 1000;
 
@@ -151,11 +172,7 @@ window.RoutesModule = ((AppUtils) => {
                 const referenceMs = AppUtils.getDateMs(getRouteReferenceDate(job));
                 return referenceMs >= threshold;
             })
-            .sort((a, b) => {
-                const dateA = AppUtils.getDateMs(getRouteReferenceDate(a));
-                const dateB = AppUtils.getDateMs(getRouteReferenceDate(b));
-                return dateB - dateA;
-            });
+            .sort(AppUtils.compareByDateDesc);
 
         const byDriver = new Map();
 
@@ -168,6 +185,9 @@ window.RoutesModule = ((AppUtils) => {
         return [...byDriver.values()];
     }
 
+    /**
+     * Construye la lista de viajes de rutas
+     */
     function buildRouteTrips(jobs) {
         return [...jobs]
             .map((job) => ({
@@ -186,41 +206,37 @@ window.RoutesModule = ((AppUtils) => {
                 updatedAt: job.updatedAt || null,
                 publicUrl: job.publicUrl || "#"
             }))
-            .sort((a, b) => {
-                const dateA = AppUtils.getDateMs(getRouteReferenceDate(a));
-                const dateB = AppUtils.getDateMs(getRouteReferenceDate(b));
-                return dateB - dateA;
-            });
+            .sort(AppUtils.compareByDateDesc);
     }
 
+    /**
+     * Obtiene la ruta asignada por conductor
+     */
     function getAssignedRouteByDriver(jobs, recentDriverRoutes = []) {
         const assigned = new Map();
 
-        const recentOrdered = [...recentDriverRoutes].sort((a, b) => {
-            const dateA = AppUtils.getDateMs(getRouteReferenceDate(a));
-            const dateB = AppUtils.getDateMs(getRouteReferenceDate(b));
-            return dateB - dateA;
-        });
+        const processJobs = (jobList) => {
+            jobList
+                .sort(AppUtils.compareByDateDesc)
+                .forEach((job) => {
+                    if (!job.userId || assigned.has(job.userId)) return;
+                    assigned.set(job.userId, `${job.origin} - ${job.destination}`);
+                });
+        };
 
-        recentOrdered.forEach((job) => {
-            if (!job.userId || assigned.has(job.userId)) return;
-            assigned.set(job.userId, `${job.origin} - ${job.destination}`);
-        });
-
-        const ordered = [...jobs].sort((a, b) => {
-            const dateA = AppUtils.getDateMs(getRouteReferenceDate(a));
-            const dateB = AppUtils.getDateMs(getRouteReferenceDate(b));
-            return dateB - dateA;
-        });
-
-        ordered.forEach((job) => {
-            if (!job.userId || assigned.has(job.userId)) return;
-            assigned.set(job.userId, `${job.origin} - ${job.destination}`);
-        });
+        processJobs(recentDriverRoutes);
+        processJobs(jobs);
 
         return assigned;
     }
 
+    // ============================================
+    // FUNCIONES DEL MAPA
+    // ============================================
+
+    /**
+     * Normaliza el nombre de una ciudad
+     */
     function normalizeCityKey(value) {
         return AppUtils.normalizeText(value)
             .replace(/\bpsv\b/g, "")
@@ -228,6 +244,9 @@ window.RoutesModule = ((AppUtils) => {
             .replace(/^_+|_+$/g, "");
     }
 
+    /**
+     * Resuelve la clave de ciudad
+     */
     function resolveCityKey(cityName, cityId) {
         const candidates = [
             normalizeCityKey(cityId),
@@ -244,11 +263,17 @@ window.RoutesModule = ((AppUtils) => {
         return null;
     }
 
+    /**
+     * Obtiene la posición de una ciudad
+     */
     function getCityPosition(cityName, cityId) {
         const key = resolveCityKey(cityName, cityId);
         return key ? CITY_POSITIONS[key] : null;
     }
 
+    /**
+     * Calcula el punto medio entre dos posiciones
+     */
     function midpoint(posA, posB) {
         if (!posA && !posB) return null;
         if (!posA) return posB;
@@ -259,10 +284,16 @@ window.RoutesModule = ((AppUtils) => {
         };
     }
 
+    /**
+     * Limita un valor entre un mínimo y máximo
+     */
     function clamp(value, min, max) {
         return Math.min(max, Math.max(min, value));
     }
 
+    /**
+     * Limita los offset del mapa
+     */
     function clampMapOffsets() {
         if (!mapViewState.frame) return;
 
@@ -275,17 +306,26 @@ window.RoutesModule = ((AppUtils) => {
         mapViewState.offsetY = clamp(mapViewState.offsetY, -maxOffsetY, 0);
     }
 
+    /**
+     * Actualiza los controles del mapa
+     */
     function updateMapControls() {
         if (!mapViewState.zoomInBtn || !mapViewState.zoomOutBtn) return;
         mapViewState.zoomInBtn.disabled = mapViewState.scale >= MAP_MAX_SCALE - 0.01;
         mapViewState.zoomOutBtn.disabled = mapViewState.scale <= MAP_MIN_SCALE + 0.01;
     }
 
+    /**
+     * Obtiene la compensación del marcador según la escala
+     */
     function getMarkerCompensationByScale(scale) {
         const finalSizeMultiplier = clamp(1.05 - (scale - 1) * 0.12, 0.68, 1.05);
         return finalSizeMultiplier / Math.max(scale, 0.001);
     }
 
+    /**
+     * Aplica la compensación de marcadores
+     */
     function applyMarkerCompensation() {
         const compensation = getMarkerCompensationByScale(mapViewState.scale);
         mapViewState.markerCompensation = compensation;
@@ -295,6 +335,9 @@ window.RoutesModule = ((AppUtils) => {
         });
     }
 
+    /**
+     * Aplica la transformación del mapa
+     */
     function applyMapTransform() {
         if (!mapViewState.canvas) return;
         clampMapOffsets();
@@ -303,6 +346,9 @@ window.RoutesModule = ((AppUtils) => {
         updateMapControls();
     }
 
+    /**
+     * Establece la escala del mapa
+     */
     function setMapScale(nextScale, anchor = null) {
         if (!mapViewState.frame) return;
 
@@ -324,6 +370,9 @@ window.RoutesModule = ((AppUtils) => {
         applyMapTransform();
     }
 
+    /**
+     * Resetea la vista del mapa
+     */
     function resetMapView() {
         mapViewState.scale = MAP_MIN_SCALE;
         mapViewState.offsetX = 0;
@@ -331,6 +380,9 @@ window.RoutesModule = ((AppUtils) => {
         applyMapTransform();
     }
 
+    /**
+     * Centra el mapa en una ruta
+     */
     function focusMapOnRoute(route) {
         if (!mapViewState.frame || !route) return;
 
@@ -356,6 +408,13 @@ window.RoutesModule = ((AppUtils) => {
         applyMapTransform();
     }
 
+    // ============================================
+    // EVENTOS DEL MAPA
+    // ============================================
+
+    /**
+     * Evento de rueda del mapa
+     */
     function onMapWheel(event) {
         if (!mapViewState.frame) return;
         event.preventDefault();
@@ -369,6 +428,9 @@ window.RoutesModule = ((AppUtils) => {
         setMapScale(mapViewState.scale * factor, anchor);
     }
 
+    /**
+     * Evento de puntero hacia abajo
+     */
     function onMapPointerDown(event) {
         if (!mapViewState.frame || mapViewState.scale <= MAP_MIN_SCALE + 0.01) return;
         if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -382,6 +444,9 @@ window.RoutesModule = ((AppUtils) => {
         mapViewState.frame.setPointerCapture(event.pointerId);
     }
 
+    /**
+     * Evento de movimiento del puntero
+     */
     function onMapPointerMove(event) {
         if (!mapViewState.dragging || mapViewState.dragPointerId !== event.pointerId) return;
 
@@ -394,6 +459,9 @@ window.RoutesModule = ((AppUtils) => {
         applyMapTransform();
     }
 
+    /**
+     * Evento de puntero hacia arriba
+     */
     function onMapPointerUp(event) {
         if (!mapViewState.dragging || mapViewState.dragPointerId !== event.pointerId) return;
         mapViewState.dragging = false;
@@ -404,6 +472,9 @@ window.RoutesModule = ((AppUtils) => {
         }
     }
 
+    /**
+     * Inicializa la vista del mapa
+     */
     function ensureMapView() {
         const frame = document.getElementById("routeMapFrame");
         const canvas = document.getElementById("routeMapCanvas");
@@ -429,6 +500,7 @@ window.RoutesModule = ((AppUtils) => {
         frame.addEventListener("pointermove", onMapPointerMove);
         frame.addEventListener("pointerup", onMapPointerUp);
         frame.addEventListener("pointercancel", onMapPointerUp);
+        
         frame.addEventListener("dblclick", (event) => {
             const rect = frame.getBoundingClientRect();
             const anchor = {
@@ -441,7 +513,7 @@ window.RoutesModule = ((AppUtils) => {
 
         zoomInBtn?.addEventListener("click", () => setMapScale(mapViewState.scale * 1.2));
         zoomOutBtn?.addEventListener("click", () => setMapScale(mapViewState.scale * 0.84));
-        resetBtn?.addEventListener("click", () => resetMapView());
+        resetBtn?.addEventListener("click", resetMapView);
         window.addEventListener("resize", applyMapTransform);
 
         mapViewState.initialized = true;
@@ -449,6 +521,13 @@ window.RoutesModule = ((AppUtils) => {
         return true;
     }
 
+    // ============================================
+    // MODALES
+    // ============================================
+
+    /**
+     * Cierra el modal de ruta
+     */
     function closeRouteModal() {
         const modal = document.getElementById("routeModal");
         if (!modal) return;
@@ -457,6 +536,9 @@ window.RoutesModule = ((AppUtils) => {
         document.body.classList.remove("modal-open");
     }
 
+    /**
+     * Abre el modal de ruta
+     */
     function openRouteModal(route) {
         const modal = document.getElementById("routeModal");
         const body = document.getElementById("routeModalBody");
@@ -508,6 +590,13 @@ window.RoutesModule = ((AppUtils) => {
         document.body.classList.add("modal-open");
     }
 
+    // ============================================
+    // RENDERIZADO
+    // ============================================
+
+    /**
+     * Establece el botón de ruta activo
+     */
     function setActiveRouteButton(element) {
         document.querySelectorAll(".route-item.active").forEach((item) => {
             item.classList.remove("active");
@@ -515,6 +604,9 @@ window.RoutesModule = ((AppUtils) => {
         if (element) element.classList.add("active");
     }
 
+    /**
+     * Establece los elementos del mapa activos
+     */
     function setActiveRouteMapElements(routeId) {
         const key = String(routeId || "");
         document.querySelectorAll(".route-marker.active, .map-route-line.active").forEach((element) => {
@@ -527,6 +619,9 @@ window.RoutesModule = ((AppUtils) => {
         });
     }
 
+    /**
+     * Crea un marcador de ruta
+     */
     function createMarker(route, position, label, markerType, onClick) {
         const marker = document.createElement("button");
         marker.type = "button";
@@ -543,6 +638,9 @@ window.RoutesModule = ((AppUtils) => {
         return marker;
     }
 
+    /**
+     * Renderiza las rutas
+     */
     function renderRoutes(routes, source) {
         const routeList = document.getElementById("routeList");
         const mapMarkers = document.getElementById("mapMarkers");
@@ -597,12 +695,10 @@ window.RoutesModule = ((AppUtils) => {
 
             const originPos = getCityPosition(route.origin, route.originId);
             const destinationPos = getCityPosition(route.destination, route.destinationId);
-            const markerPos = originPos && destinationPos
-                ? midpoint(originPos, destinationPos)
-                : null;
+            const markerPos = midpoint(originPos, destinationPos);
 
             if (originPos && destinationPos && mapRoutesLayer) {
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                const line = document.createElementNS(SVG_NAMESPACE, "line");
                 line.classList.add("map-route-line");
                 line.dataset.routeId = String(route.id || "");
                 line.setAttribute("x1", String(originPos.x));
@@ -612,7 +708,6 @@ window.RoutesModule = ((AppUtils) => {
                 mapRoutesLayer.appendChild(line);
             }
 
-            // Render a single marker per route to avoid noisy/duplicated points.
             if (markerPos) {
                 mapMarkers.appendChild(createMarker(
                     route,
@@ -625,24 +720,31 @@ window.RoutesModule = ((AppUtils) => {
         });
     }
 
+    // ============================================
+    // EVENTOS
+    // ============================================
+
+    /**
+     * Configura los eventos del modal
+     */
     function setupModalEvents() {
         const closeButton = document.getElementById("closeRouteModal");
         const modal = document.getElementById("routeModal");
 
-        if (closeButton) {
-            closeButton.addEventListener("click", closeRouteModal);
-        }
+        closeButton?.addEventListener("click", closeRouteModal);
 
-        if (modal) {
-            modal.addEventListener("click", (event) => {
-                if (event.target === modal) closeRouteModal();
-            });
-        }
+        modal?.addEventListener("click", (event) => {
+            if (event.target === modal) closeRouteModal();
+        });
 
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape") closeRouteModal();
         });
     }
+
+    // ============================================
+    // EXPORTS
+    // ============================================
 
     return {
         LAST_ROUTE_WINDOW_HOURS,

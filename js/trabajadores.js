@@ -7,71 +7,151 @@
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
+
+  Workers Module - Módulo de trabajadores/conductores
 */
 
 "use strict";
 
 window.WorkersModule = ((AppUtils) => {
+    // ============================================
+    // CONSTANTES
+    // ============================================
+    const DEFAULT_AVATAR = "assets/img/default-avatar.svg";
+    const ROLE_CLASSES = {
+        owner: "role-owner",
+        admin: "role-admin",
+        conductor: "role-driver",
+        driver: "role-driver"
+    };
+
+    // ============================================
+    // ESTADO
+    // ============================================
     let appState = null;
 
+    // ============================================
+    // FUNCIONES PRIVADAS
+    // ============================================
+
+    /**
+     * Actualiza el estado de la aplicación
+     * @param {Object} state - Estado global
+     */
     function setState(state) {
         appState = state;
     }
 
+    /**
+     * Obtiene la clase CSS según el rol
+     * @param {string} roleName - Nombre del rol
+     * @returns {string}
+     */
     function getRoleClass(roleName) {
         const normalized = AppUtils.normalizeText(roleName);
-        if (normalized.includes("owner")) return "role-owner";
-        if (normalized.includes("admin")) return "role-admin";
-        if (normalized.includes("conductor")) return "role-driver";
-        return "role-driver";
+        
+        for (const [key, className] of Object.entries(ROLE_CLASSES)) {
+            if (normalized.includes(key)) {
+                return className;
+            }
+        }
+        
+        return ROLE_CLASSES.conductor;
     }
 
+    /**
+     * Verifica si el miembro es un conductor
+     * @param {Object} member - Miembro del equipo
+     * @returns {boolean}
+     */
     function isDriverMember(member) {
         const role = AppUtils.normalizeText(member?.role || "");
         if (!role) return true;
-        if (role.includes("owner")) return false;
-        return true;
+        return !role.includes("owner");
     }
 
+    /**
+     * Obtiene los trabajos de un conductor
+     * @param {number} memberId - ID del miembro
+     * @returns {Array}
+     */
     function getWorkerJobs(memberId) {
-        if (!appState) return [];
+        if (!appState?.jobs) return [];
+        
         return appState.jobs
             .filter((job) => job.userId === memberId)
-            .sort((a, b) => {
-                const dateA = AppUtils.getDateMs(a.completedAt || a.startedAt);
-                const dateB = AppUtils.getDateMs(b.completedAt || b.startedAt);
-                return dateB - dateA;
-            });
+            .sort(AppUtils.compareByDateDesc);
     }
 
+    /**
+     * Obtiene los trabajos completados
+     * @param {Array} jobs - Lista de trabajos
+     * @returns {Array}
+     */
+    function getCompletedJobs(jobs) {
+        return jobs.filter((job) => job.status === "completed");
+    }
+
+    /**
+     * Obtiene los trabajos en progreso
+     * @param {Array} jobs - Lista de trabajos
+     * @returns {Array}
+     */
+    function getActiveJobs(jobs) {
+        return jobs.filter((job) => AppUtils.isInProgress(job.status));
+    }
+
+    /**
+     * Genera las filas del historial
+     * @param {Array} jobs - Lista de trabajos
+     * @returns {string}
+     */
+    function renderHistoryRows(jobs) {
+        const historyJobs = jobs.slice(0, 6);
+        
+        if (!historyJobs.length) {
+            return "<li>Sin historial disponible.</li>";
+        }
+        
+        return historyJobs.map((job) => {
+            const km = job.drivenKm || job.plannedKm;
+            const date = AppUtils.formatDate(job.completedAt || job.startedAt);
+            return `
+                <li>
+                    <strong>${job.origin} - ${job.destination}</strong>
+                    <small>${date} | ${AppUtils.formatNumber(km)} km | ${job.status}</small>
+                </li>
+            `;
+        }).join("");
+    }
+
+    // ============================================
+    // MODALES
+    // ============================================
+
+    /**
+     * Abre el modal de detalles del trabajador
+     * @param {number} memberId - ID del miembro
+     */
     function openWorkerModal(memberId) {
         const modal = document.getElementById("workerModal");
         const modalBody = document.getElementById("modalBody");
+        
         if (!appState || !modal || !modalBody) return;
 
         const member = appState.members.find((row) => row.id === memberId);
         if (!member) return;
 
         const jobs = getWorkerJobs(memberId);
-        const completedJobs = jobs.filter((job) => job.status === "completed");
-        const activeJobs = jobs.filter((job) => job.status === "in_progress");
+        const completedJobs = getCompletedJobs(jobs);
+        const activeJobs = getActiveJobs(jobs);
         const monthKm = appState.monthKmByDriver.get(memberId) || 0;
         const routeAssigned = appState.assignedRouteByDriver.get(memberId) || "No asignada";
         const roleClass = getRoleClass(member.role);
 
-        const historyRows = jobs.slice(0, 6).map((job) => {
-            const km = job.drivenKm || job.plannedKm;
-            return `
-                <li>
-                    <strong>${job.origin} - ${job.destination}</strong>
-                    <small>${AppUtils.formatDate(job.completedAt || job.startedAt)} | ${AppUtils.formatNumber(km)} km | ${job.status}</small>
-                </li>
-            `;
-        }).join("");
-
         modalBody.innerHTML = `
             <div class="modal-head">
-                <img src="${member.avatar}" alt="Avatar de ${member.name}" onerror="this.src='assets/img/default-avatar.svg'">
+                <img src="${member.avatar}" alt="Avatar de ${member.name}" onerror="this.src='${DEFAULT_AVATAR}'">
                 <div>
                     <h3>${member.name}</h3>
                     <p><span class="role-label ${roleClass}">${member.role}</span> | Ruta asignada: ${routeAssigned}</p>
@@ -104,7 +184,7 @@ window.WorkersModule = ((AppUtils) => {
                 </article>
             </div>
             <ul class="history-list">
-                ${historyRows || "<li>Sin historial disponible.</li>"}
+                ${renderHistoryRows(jobs)}
             </ul>
         `;
 
@@ -113,25 +193,37 @@ window.WorkersModule = ((AppUtils) => {
         document.body.classList.add("modal-open");
     }
 
+    /**
+     * Cierra el modal del trabajador
+     */
     function closeWorkerModal() {
         const modal = document.getElementById("workerModal");
         if (!modal) return;
+        
         modal.classList.remove("open");
         modal.setAttribute("aria-hidden", "true");
         document.body.classList.remove("modal-open");
     }
 
+    // ============================================
+    // RENDERIZADO
+    // ============================================
+
+    /**
+     * Renderiza la cuadrícula de trabajadores
+     */
     function renderWorkers() {
         const grid = document.getElementById("workersGrid");
+        
         if (!appState || !grid) return;
 
         grid.innerHTML = "";
 
-        const ordered = appState.members
-            .filter((member) => isDriverMember(member))
+        const orderedMembers = appState.members
+            .filter(isDriverMember)
             .sort((a, b) => b.totalKm - a.totalKm);
 
-        ordered.forEach((member) => {
+        orderedMembers.forEach((member) => {
             const route = appState.assignedRouteByDriver.get(member.id) || "No asignada";
             const monthKm = appState.monthKmByDriver.get(member.id) || 0;
             const roleClass = getRoleClass(member.role);
@@ -140,7 +232,7 @@ window.WorkersModule = ((AppUtils) => {
             card.className = "worker-card";
             card.innerHTML = `
                 <div class="worker-top">
-                    <img src="${member.avatar}" alt="Avatar de ${member.name}" onerror="this.src='assets/img/default-avatar.svg'">
+                    <img src="${member.avatar}" alt="Avatar de ${member.name}" onerror="this.src='${DEFAULT_AVATAR}'">
                     <div>
                         <h3>${member.name}</h3>
                         <p class="role-label ${roleClass}">${member.role}</p>
@@ -158,24 +250,31 @@ window.WorkersModule = ((AppUtils) => {
         });
     }
 
+    // ============================================
+    // EVENTOS
+    // ============================================
+
+    /**
+     * Configura los eventos del modal
+     */
     function setupModalEvents() {
         const closeButton = document.getElementById("closeModal");
         const modal = document.getElementById("workerModal");
 
-        if (closeButton) {
-            closeButton.addEventListener("click", closeWorkerModal);
-        }
+        closeButton?.addEventListener("click", closeWorkerModal);
 
-        if (modal) {
-            modal.addEventListener("click", (event) => {
-                if (event.target === modal) closeWorkerModal();
-            });
-        }
+        modal?.addEventListener("click", (event) => {
+            if (event.target === modal) closeWorkerModal();
+        });
 
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape") closeWorkerModal();
         });
     }
+
+    // ============================================
+    // EXPORTS
+    // ============================================
 
     return {
         setState,

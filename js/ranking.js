@@ -7,23 +7,49 @@
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
+
+  Ranking Module - Módulo de clasificación de conductores
 */
 
 "use strict";
 
 window.RankingModule = ((AppUtils) => {
+    // ============================================
+    // CONSTANTES
+    // ============================================
+    const RANK_BADGES = ["🥇", "🥈", "🥉"];
+    const DEFAULT_AVATAR = "assets/img/default-avatar.svg";
+    const MAX_RANKING_ITEMS = 5;
+
+    // ============================================
+    // FUNCIONES PRIVADAS
+    // ============================================
+
+    /**
+     * Obtiene la insignia de rango según la posición
+     * @param {number} index - Índice del elemento (0-based)
+     * @returns {string}
+     */
     function getRankBadge(index) {
-        if (index === 0) return "🥇";
-        if (index === 1) return "🥈";
-        if (index === 2) return "🥉";
+        if (index < RANK_BADGES.length) return RANK_BADGES[index];
         return String(index + 1);
     }
 
+    /**
+     * Renderiza una lista de ranking en un contenedor
+     * @param {string} containerId - ID del contenedor
+     * @param {Array} rows - Datos del ranking
+     */
     function renderRankingList(containerId, rows) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
         container.innerHTML = "";
+
+        if (!rows.length) {
+            container.innerHTML = "<p>No hay datos disponibles.</p>";
+            return;
+        }
 
         rows.forEach((row, index) => {
             const element = document.createElement("article");
@@ -34,9 +60,9 @@ window.RankingModule = ((AppUtils) => {
                     <span class="rank-badge">${getRankBadge(index)}</span>
                     <img
                         class="rank-avatar"
-                        src="${row.avatar || "assets/img/default-avatar.svg"}"
+                        src="${row.avatar || DEFAULT_AVATAR}"
                         alt="Avatar de ${row.name}"
-                        onerror="this.src='assets/img/default-avatar.svg'"
+                        onerror="this.src='${DEFAULT_AVATAR}'"
                     >
                     <strong class="ranking-name">${row.name}</strong>
                 </div>
@@ -44,24 +70,33 @@ window.RankingModule = ((AppUtils) => {
             `;
             container.appendChild(element);
         });
-
-        if (rows.length === 0) {
-            container.innerHTML = "<p>No hay datos disponibles.</p>";
-        }
     }
 
-    function renderRankings(state) {
-        const monthRanking = [...state.members]
+    /**
+     * Procesa los miembros para el ranking mensual
+     * @param {Array} members - Lista de miembros
+     * @param {Map} monthKmByDriver - KM del mes por conductor
+     * @returns {Array}
+     */
+    function processMonthlyRanking(members, monthKmByDriver) {
+        return members
             .map((member) => ({
                 id: member.id,
                 name: member.name,
                 avatar: member.avatar,
-                km: state.monthKmByDriver.get(member.id) || 0
+                km: monthKmByDriver.get(member.id) || 0
             }))
             .sort((a, b) => b.km - a.km)
-            .slice(0, 5);
+            .slice(0, MAX_RANKING_ITEMS);
+    }
 
-        const historicRanking = [...state.members]
+    /**
+     * Procesa los miembros para el ranking histórico
+     * @param {Array} members - Lista de miembros
+     * @returns {Array}
+     */
+    function processHistoricRanking(members) {
+        return members
             .map((member) => ({
                 id: member.id,
                 name: member.name,
@@ -69,11 +104,28 @@ window.RankingModule = ((AppUtils) => {
                 km: member.totalKm
             }))
             .sort((a, b) => b.km - a.km)
-            .slice(0, 5);
+            .slice(0, MAX_RANKING_ITEMS);
+    }
+
+    // ============================================
+    // FUNCIONES PÚBLICAS
+    // ============================================
+
+    /**
+     * Renderiza ambos rankings (mensual e histórico)
+     * @param {Object} state - Estado global de la aplicación
+     */
+    function renderRankings(state) {
+        const monthRanking = processMonthlyRanking(state.members, state.monthKmByDriver);
+        const historicRanking = processHistoricRanking(state.members);
 
         renderRankingList("rankingMonth", monthRanking);
         renderRankingList("rankingHistoric", historicRanking);
     }
+
+    // ============================================
+    // EXPORTS
+    // ============================================
 
     return {
         renderRankings

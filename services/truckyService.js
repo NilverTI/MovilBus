@@ -7,11 +7,16 @@
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
+
+  Trucky Service Module - Capa de servicio para API de Trucky
 */
 
 "use strict";
 
 window.TruckyService = ((AppUtils, AppApi) => {
+    // ============================================
+    // CONSTANTES
+    // ============================================
     const DEFAULT_AVATAR = "assets/img/default-avatar.svg";
     const MAX_MONTH_JOB_PAGES = 120;
     const COMPANY_CACHE_KEY = "movilbus:company-data:v3";
@@ -23,12 +28,15 @@ window.TruckyService = ((AppUtils, AppApi) => {
     const FAST_LOAD_TIMEOUT_MS = 9000;
     const YEARLY_STATS_TIMEOUT_MS = 4500;
     const FAST_JOBS_ENDPOINT = "/jobs?top=0&page=1&perPage=100&sortingField=updated_at&sortingDirection=desc";
+
     const PLACEHOLDER_AVATAR_SIGNATURES = [
         "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
         "0000000000000000000000000000000000000000"
     ];
-    const monthCache = new Map();
 
+    // ============================================
+    // DATOS FALLBACK
+    // ============================================
     const FALLBACK_MEMBERS = [
         { id: 1, name: "Nilver TI", role: { name: "Conductor" }, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
         { id: 2, name: "Jeap Rutero", role: { name: "Conductor" }, total_driven_distance_km: 45110, avatar_url: DEFAULT_AVATAR },
@@ -39,91 +47,66 @@ window.TruckyService = ((AppUtils, AppApi) => {
 
     const FALLBACK_JOBS = [
         {
-            id: 1001,
-            user_id: 1,
-            driver: { id: 1, name: "Nilver TI" },
-            source_city_name: "Lima",
-            destination_city_name: "Arequipa",
-            status: "completed",
-            planned_distance_km: 1010,
-            driven_distance_km: 1004,
-            completed_at: AppUtils.daysAgoIso(1),
-            started_at: AppUtils.daysAgoIso(1)
+            id: 1001, user_id: 1, driver: { id: 1, name: "Nilver TI" },
+            source_city_name: "Lima", destination_city_name: "Arequipa",
+            status: "completed", planned_distance_km: 1010, driven_distance_km: 1004,
+            completed_at: AppUtils.daysAgoIso(1), started_at: AppUtils.daysAgoIso(1)
         },
         {
-            id: 1002,
-            user_id: 2,
-            driver: { id: 2, name: "Jeap Rutero" },
-            source_city_name: "Cusco",
-            destination_city_name: "Puno",
-            status: "in_progress",
-            planned_distance_km: 390,
-            driven_distance_km: 188,
+            id: 1002, user_id: 2, driver: { id: 2, name: "Jeap Rutero" },
+            source_city_name: "Cusco", destination_city_name: "Puno",
+            status: "in_progress", planned_distance_km: 390, driven_distance_km: 188,
             started_at: AppUtils.daysAgoIso(0)
         },
         {
-            id: 1003,
-            user_id: 3,
-            driver: { id: 3, name: "CarlManu" },
-            source_city_name: "Trujillo",
-            destination_city_name: "Lima",
-            status: "completed",
-            planned_distance_km: 560,
-            driven_distance_km: 554,
-            completed_at: AppUtils.daysAgoIso(3),
-            started_at: AppUtils.daysAgoIso(3)
+            id: 1003, user_id: 3, driver: { id: 3, name: "CarlManu" },
+            source_city_name: "Trujillo", destination_city_name: "Lima",
+            status: "completed", planned_distance_km: 560, driven_distance_km: 554,
+            completed_at: AppUtils.daysAgoIso(3), started_at: AppUtils.daysAgoIso(3)
         },
         {
-            id: 1004,
-            user_id: 4,
-            driver: { id: 4, name: "Jefferson" },
-            source_city_name: "Huancayo",
-            destination_city_name: "Cusco",
-            status: "completed",
-            planned_distance_km: 760,
-            driven_distance_km: 748,
-            completed_at: AppUtils.daysAgoIso(6),
-            started_at: AppUtils.daysAgoIso(6)
+            id: 1004, user_id: 4, driver: { id: 4, name: "Jefferson" },
+            source_city_name: "Huancayo", destination_city_name: "Cusco",
+            status: "completed", planned_distance_km: 760, driven_distance_km: 748,
+            completed_at: AppUtils.daysAgoIso(6), started_at: AppUtils.daysAgoIso(6)
         },
         {
-            id: 1005,
-            user_id: 5,
-            driver: { id: 5, name: "Sahur" },
-            source_city_name: "Lima",
-            destination_city_name: "Ica",
-            status: "in_progress",
-            planned_distance_km: 305,
-            driven_distance_km: 121,
+            id: 1005, user_id: 5, driver: { id: 5, name: "Sahur" },
+            source_city_name: "Lima", destination_city_name: "Ica",
+            status: "in_progress", planned_distance_km: 305, driven_distance_km: 121,
             started_at: AppUtils.daysAgoIso(0)
         },
         {
-            id: 1006,
-            user_id: 1,
-            driver: { id: 1, name: "Nilver TI" },
-            source_city_name: "Arequipa",
-            destination_city_name: "Puno",
-            status: "completed",
-            planned_distance_km: 300,
-            driven_distance_km: 294,
-            completed_at: AppUtils.daysAgoIso(10),
-            started_at: AppUtils.daysAgoIso(10)
+            id: 1006, user_id: 1, driver: { id: 1, name: "Nilver TI" },
+            source_city_name: "Arequipa", destination_city_name: "Puno",
+            status: "completed", planned_distance_km: 300, driven_distance_km: 294,
+            completed_at: AppUtils.daysAgoIso(10), started_at: AppUtils.daysAgoIso(10)
         }
     ];
 
+    // ============================================
+    // CACHÉ
+    // ============================================
+    const monthCache = new Map();
+
+    // Inicializar caché al cargar
     hydrateMonthCache();
+
+    // ============================================
+    // FUNCIONES DE ALMACENAMIENTO
+    // ============================================
 
     function canUseStorage() {
         if (typeof window === "undefined") return false;
         try {
             return !!window.localStorage;
-        } catch (error) {
+        } catch {
             return false;
         }
     }
 
     function readStorage(key) {
         if (!canUseStorage()) return null;
-
         try {
             const raw = window.localStorage.getItem(key);
             if (!raw) return null;
@@ -136,7 +119,6 @@ window.TruckyService = ((AppUtils, AppApi) => {
 
     function writeStorage(key, value) {
         if (!canUseStorage()) return;
-
         try {
             window.localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
@@ -160,6 +142,10 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const entries = [...monthCache.entries()].slice(-MAX_PERSISTED_MONTHS);
         writeStorage(MONTH_CACHE_KEY, entries);
     }
+
+    // ============================================
+    // NORMALIZACIÓN DE DATOS
+    // ============================================
 
     function sanitizeCompanyTotals(value) {
         if (!value || typeof value !== "object") return null;
@@ -194,6 +180,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
     function getFallbackCompanyTotals(normalizedMembers) {
         const membersTotalKm = normalizedMembers.reduce((sum, member) => sum + member.totalKm, 0);
         const nowYear = new Date().getFullYear();
+        
         return {
             companyId: extractCompanyId(),
             totalDistance: membersTotalKm,
@@ -217,6 +204,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const members = Array.isArray(payload.members) ? payload.members : [];
         const jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
         const recentJobs = Array.isArray(payload.recentJobs) ? payload.recentJobs : [];
+        
         if (members.length === 0 || jobs.length === 0) return null;
 
         return {
@@ -250,6 +238,10 @@ window.TruckyService = ((AppUtils, AppApi) => {
             payload: safePayload
         });
     }
+
+    // ============================================
+    // UTILIDADES
+    // ============================================
 
     function withDeadline(promise, timeoutMs = FAST_LOAD_TIMEOUT_MS) {
         return Promise.race([
@@ -334,13 +326,9 @@ window.TruckyService = ((AppUtils, AppApi) => {
         return months;
     }
 
-    function getCountableDistanceKm(job) {
-        const status = AppUtils.normalizeText(job?.status || "");
-        if (status !== "completed" && status !== "canceled") return 0;
-
-        // Trucky annual panel totals include completed + canceled jobs.
-        return AppUtils.toNumber(job.driven_distance_km ?? job.driven_distance);
-    }
+    // ============================================
+    // API DE TRUCKY
+    // ============================================
 
     async function getCompanyInfo() {
         return await AppApi.fetchEndpoint("");
@@ -382,6 +370,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const cacheKey = `${companyId}:${year}-${month}`;
         const now = Date.now();
         const cached = monthCache.get(cacheKey);
+        
         if (cached) {
             const cachedAt = AppUtils.toNumber(cached.cachedAt);
             const isCurrentMonthFresh = now - cachedAt <= CURRENT_MONTH_CACHE_MS;
@@ -395,7 +384,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
 
         const seenJobIds = new Set();
         const monthDistance = jobs.reduce((sum, row) => {
-            const distance = getCountableDistanceKm(row);
+            const distance = AppUtils.getCountableDistance(row);
             if (distance <= 0) return sum;
 
             const jobId = AppUtils.toNumber(row.id);
@@ -479,8 +468,13 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
     }
 
+    // ============================================
+    // CARGA DE DATOS
+    // ============================================
+
     async function loadCompanyData() {
         const currentYear = new Date().getFullYear();
+        
         const membersPayloadPromise = withDeadline(AppApi.fetchEndpoint("/members"));
         const jobsPayloadPromise = withDeadline(AppApi.fetchEndpoint(FAST_JOBS_ENDPOINT));
         const recentJobsPayloadPromise = withDeadline(AppApi.fetchEndpoint(AppApi.RECENT_ROUTES_ENDPOINT));
@@ -494,13 +488,9 @@ window.TruckyService = ((AppUtils, AppApi) => {
         ]);
 
         let source = "api";
-        let membersRaw = [];
-        let jobsRaw = [];
-        let recentJobsRaw = [];
-
-        membersRaw = AppUtils.getDataArray(membersPayload);
-        jobsRaw = AppUtils.getDataArray(jobsPayload);
-        recentJobsRaw = AppUtils.getDataArray(recentJobsPayload);
+        let membersRaw = AppUtils.getDataArray(membersPayload);
+        let jobsRaw = AppUtils.getDataArray(jobsPayload);
+        let recentJobsRaw = AppUtils.getDataArray(recentJobsPayload);
 
         if (membersRaw.length === 0) {
             membersRaw = FALLBACK_MEMBERS;
@@ -513,6 +503,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
 
         const normalizedMembers = normalizeMembers(membersRaw);
+        
         if (yearlyTotals) {
             saveCachedTotals(yearlyTotals);
         }
@@ -576,6 +567,10 @@ window.TruckyService = ((AppUtils, AppApi) => {
             members: normalizeMembers(FALLBACK_MEMBERS)
         };
     }
+
+    // ============================================
+    // EXPORTS
+    // ============================================
 
     return {
         getCachedCompanyData,
