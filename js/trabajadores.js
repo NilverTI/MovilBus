@@ -112,6 +112,17 @@ window.WorkersModule = ((AppUtils) => {
     }
 
     /**
+     * Obtiene la distancia total para mostrar en UI
+     * @param {Object} member - Miembro del equipo
+     * @returns {number}
+     */
+    function getMemberTotalDistance(member) {
+        const totalDistanceKm = AppUtils.toNumber(member?.totalDistanceKm);
+        if (totalDistanceKm > 0) return totalDistanceKm;
+        return AppUtils.toNumber(member?.totalKm);
+    }
+
+    /**
      * Genera las filas del historial
      * @param {Array} jobs - Lista de trabajos
      * @returns {string}
@@ -159,6 +170,7 @@ window.WorkersModule = ((AppUtils) => {
         const routeAssigned = appState.assignedRouteByDriver.get(memberId) || "No asignada";
         const roleClass = getRoleClass(member.role);
         const truckyLevel = formatTruckyLevel(member.level);
+        const totalDistanceKm = getMemberTotalDistance(member);
 
         modalBody.innerHTML = `
             <div class="modal-head">
@@ -170,8 +182,8 @@ window.WorkersModule = ((AppUtils) => {
             </div>
             <div class="modal-grid">
                 <article class="modal-metric">
-                    <p>KM Acumulado</p>
-                    <strong>${AppUtils.formatNumber(member.totalKm)} km</strong>
+                    <p>Distancia total</p>
+                    <strong>${AppUtils.formatNumber(totalDistanceKm)} km</strong>
                 </article>
                 <article class="modal-metric">
                     <p>KM del mes</p>
@@ -236,13 +248,14 @@ window.WorkersModule = ((AppUtils) => {
 
         const orderedMembers = appState.members
             .filter(isDriverMember)
-            .sort((a, b) => b.totalKm - a.totalKm);
+            .sort((a, b) => getMemberTotalDistance(b) - getMemberTotalDistance(a));
 
         orderedMembers.forEach((member) => {
             const route = appState.assignedRouteByDriver.get(member.id) || "No asignada";
             const monthKm = appState.monthKmByDriver.get(member.id) || 0;
             const roleClass = getRoleClass(member.role);
             const truckyLevel = formatTruckyLevel(member.level);
+            const totalDistanceKm = getMemberTotalDistance(member);
 
             const card = document.createElement("article");
             card.className = "worker-card";
@@ -258,7 +271,7 @@ window.WorkersModule = ((AppUtils) => {
                     <div class="worker-stat"><span>Ruta</span><span>${route}</span></div>
                     <div class="worker-stat"><span>Nivel Trucky</span><span class="trucky-level">${truckyLevel}</span></div>
                     <div class="worker-stat"><span>KM del mes</span><span>${AppUtils.formatNumber(monthKm)} km</span></div>
-                    <div class="worker-stat"><span>KM Acumulado</span><span>${AppUtils.formatNumber(member.totalKm)} km</span></div>
+                    <div class="worker-stat"><span>Distancia total</span><span>${AppUtils.formatNumber(totalDistanceKm)} km</span></div>
                 </div>
             `;
 

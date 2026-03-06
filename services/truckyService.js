@@ -19,7 +19,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
     // ============================================
     const DEFAULT_AVATAR = "assets/img/default-avatar.svg";
     const MAX_MONTH_JOB_PAGES = 120;
-    const COMPANY_CACHE_KEY = "movilbus:company-data:v3";
+    const COMPANY_CACHE_KEY = "movilbus:company-data:v4";
     const MONTH_CACHE_KEY = "movilbus:month-cache:v2";
     const TOTALS_CACHE_KEY = "movilbus:totals-cache:v3";
     const TOTALS_REVALIDATE_MS = 4 * 60 * 60 * 1000;
@@ -27,6 +27,11 @@ window.TruckyService = ((AppUtils, AppApi) => {
     const MAX_PERSISTED_MONTHS = 96;
     const FAST_LOAD_TIMEOUT_MS = 9000;
     const YEARLY_STATS_TIMEOUT_MS = 4500;
+    const USER_TOTALS_CACHE_KEY = "movilbus:user-totals:v2";
+    const USER_TOTALS_CACHE_MS = 4 * 60 * 60 * 1000;
+    const USER_JOBS_PER_PAGE = 100;
+    const USER_JOBS_MAX_PAGES = 60;
+    const USER_TOTALS_TIMEOUT_MS = 12000;
     const FAST_JOBS_ENDPOINT = "/jobs?top=0&page=1&perPage=100&sortingField=updated_at&sortingDirection=desc";
 
     const PLACEHOLDER_AVATAR_SIGNATURES = [
@@ -88,9 +93,12 @@ window.TruckyService = ((AppUtils, AppApi) => {
     // CACHÉ
     // ============================================
     const monthCache = new Map();
+    const userTotalsCache = new Map();
+    const userTotalsInFlight = new Map();
 
     // Inicializar caché al cargar
     hydrateMonthCache();
+    hydrateUserTotalsCache();
 
     // ============================================
     // FUNCIONES DE ALMACENAMIENTO
@@ -141,6 +149,30 @@ window.TruckyService = ((AppUtils, AppApi) => {
     function persistMonthCache() {
         const entries = [...monthCache.entries()].slice(-MAX_PERSISTED_MONTHS);
         writeStorage(MONTH_CACHE_KEY, entries);
+    }
+
+    function hydrateUserTotalsCache() {
+        const stored = readStorage(USER_TOTALS_CACHE_KEY);
+        if (!stored || typeof stored !== "object") return;
+
+        Object.entries(stored).forEach(([userId, value]) => {
+            if (!value || typeof value !== "object") return;
+
+            const totalKm = AppUtils.toNumber(value.totalKm);
+            const cachedAt = AppUtils.toNumber(value.cachedAt);
+            const updatedAtRef = String(value.updatedAtRef || "");
+            if (!userId || cachedAt <= 0) return;
+
+            userTotalsCache.set(String(userId), { totalKm, cachedAt, updatedAtRef });
+        });
+    }
+
+    function persistUserTotalsCache() {
+        const serialized = {};
+        userTotalsCache.forEach((value, key) => {
+            serialized[key] = value;
+        });
+        writeStorage(USER_TOTALS_CACHE_KEY, serialized);
     }
 
     // ============================================
@@ -264,14 +296,22 @@ window.TruckyService = ((AppUtils, AppApi) => {
     }
 
     function normalizeMembers(rows) {
-        return rows.map((row, index) => ({
-            id: AppUtils.toNumber(row.id || index + 1),
-            name: row.name || row.username || `Conductor ${index + 1}`,
-            role: row.role?.name || row.role || "Conductor",
-            level: AppUtils.toNumber(row.level),
-            avatar: sanitizeAvatarUrl(row.avatar_url || row.avatar || DEFAULT_AVATAR),
-            totalKm: AppUtils.toNumber(row.total_driven_distance_km ?? row.km_driven_total)
-        }));
+        return rows.map((row, index) => {
+            const memberId = AppUtils.toNumber(row.id || index + 1);
+            const memberUpdatedAt = row.updated_at || row.updatedAt || "";
+            const cachedTotal = getCachedUserTotalDistance(memberId, memberUpdatedAt);
+
+            return {
+                id: memberId,
+                name: row.name || row.username || `Conductor ${index + 1}`,
+                role: row.role?.name || row.role || "Conductor",
+                level: AppUtils.toNumber(row.level),
+                updatedAt: row.updated_at || row.updatedAt || null,
+                avatar: sanitizeAvatarUrl(row.avatar_url || row.avatar || DEFAULT_AVATAR),
+                totalKm: AppUtils.toNumber(row.total_driven_distance_km ?? row.km_driven_total),
+                totalDistanceKm: AppUtils.toNumber(cachedTotal?.totalKm)
+            };
+        });
     }
 
     function normalizeJobs(rows) {
@@ -325,6 +365,194 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
 
         return months;
+    }
+
+    function getApiOrigin() {
+        const value = String(AppApi.API_BASE || "");
+        const match = value.match(/^(https?:\/\/[^/]+)/i);
+        return match?.[1] || "https://e.truckyapp.com";
+    }
+
+    function buildUserJobsEndpoint(userId, page = 1) {
+        const safeUserId = AppUtils.toNumber(userId);
+        const safePage = Math.max(1, AppUtils.toNumber(page));
+        return `${getApiOrigin()}/api/v1/user/${safeUserId}/jobs?page=${safePage}&perPage=${USER_JOBS_PER_PAGE}&status=completed&sortingField=updated_at&sortingDirection=desc`;
+    }
+
+    function buildUserDetailEndpoint(userId) {
+        const safeUserId = AppUtils.toNumber(userId);
+        return `${getApiOrigin()}/api/v2/user/${safeUserId}`;
+    }
+
+    function normalizeDistanceToKm(distance, unit) {
+        const safeDistance = AppUtils.toNumber(distance);
+        const normalizedUnit = AppUtils.normalizeText(unit || "km");
+        if (normalizedUnit === "mi" || normalizedUnit === "mile" || normalizedUnit === "miles") {
+            return safeDistance * 1.609344;
+        }
+        return safeDistance;
+    }
+
+    async function fetchAbsoluteJson(url, timeoutMs = USER_TOTALS_TIMEOUT_MS) {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: "application/json, text/plain, */*" },
+                signal: controller.signal
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } finally {
+            window.clearTimeout(timeoutId);
+        }
+    }
+
+    async function fetchUserJobsPage(userId, page) {
+        const endpoint = buildUserJobsEndpoint(userId, page);
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+            try {
+                return await fetchAbsoluteJson(endpoint);
+            } catch (error) {
+                lastError = error;
+                if (attempt < 3) {
+                    await new Promise((resolve) => window.setTimeout(resolve, 300 * attempt));
+                }
+            }
+        }
+
+        throw lastError;
+    }
+
+    function getCachedUserTotalDistance(userId, updatedAtRef = "") {
+        const cacheEntry = userTotalsCache.get(String(userId));
+        if (!cacheEntry) return null;
+
+        const safeUpdatedAtRef = String(updatedAtRef || "");
+        if (safeUpdatedAtRef && safeUpdatedAtRef === String(cacheEntry.updatedAtRef || "")) {
+            return cacheEntry;
+        }
+
+        const ageMs = Date.now() - AppUtils.toNumber(cacheEntry.cachedAt);
+        if (ageMs <= USER_TOTALS_CACHE_MS) return cacheEntry;
+
+        userTotalsCache.delete(String(userId));
+        persistUserTotalsCache();
+        return null;
+    }
+
+    function setCachedUserTotalDistance(userId, totalKm, updatedAtRef = "") {
+        userTotalsCache.set(String(userId), {
+            totalKm: AppUtils.toNumber(totalKm),
+            cachedAt: Date.now(),
+            updatedAtRef: String(updatedAtRef || "")
+        });
+        persistUserTotalsCache();
+    }
+
+    function sumJobsDistance(rows) {
+        if (!Array.isArray(rows) || rows.length === 0) return 0;
+        return rows.reduce((sum, row) => {
+            const status = AppUtils.normalizeText(row?.status || "");
+            if (status && status !== "completed") return sum;
+            return sum + AppUtils.toNumber(row.driven_distance_km ?? row.driven_distance);
+        }, 0);
+    }
+
+    async function fetchUserTotalDistanceFromProfile(userId) {
+        const safeUserId = AppUtils.toNumber(userId);
+        if (safeUserId <= 0) return 0;
+
+        try {
+            const payload = await fetchAbsoluteJson(buildUserDetailEndpoint(safeUserId), USER_TOTALS_TIMEOUT_MS);
+            const rawDistance = AppUtils.toNumber(payload?.total_driven_distance);
+            if (rawDistance <= 0) return 0;
+
+            const unit = payload?.aggregated_distance_unit || payload?.ets2_distance_unit || "km";
+            return normalizeDistanceToKm(rawDistance, unit);
+        } catch {
+            return 0;
+        }
+    }
+
+    async function fetchUserTotalDistanceKm(userId, updatedAtRef = "") {
+        const safeUserId = AppUtils.toNumber(userId);
+        if (safeUserId <= 0) return 0;
+        const cacheKey = String(safeUserId);
+        const safeUpdatedAtRef = String(updatedAtRef || "");
+
+        const cached = getCachedUserTotalDistance(safeUserId, safeUpdatedAtRef);
+        if (cached) return cached.totalKm;
+
+        const existingRequest = userTotalsInFlight.get(cacheKey);
+        if (existingRequest) return existingRequest;
+
+        const request = (async () => {
+            try {
+                const profileDistanceKm = await fetchUserTotalDistanceFromProfile(safeUserId);
+                if (profileDistanceKm > 0) {
+                    setCachedUserTotalDistance(safeUserId, profileDistanceKm, safeUpdatedAtRef);
+                    return profileDistanceKm;
+                }
+
+                const pageOne = await fetchUserJobsPage(safeUserId, 1);
+                const totalPagesRaw = AppUtils.toNumber(pageOne?.last_page);
+                const totalPages = Math.max(1, Math.min(totalPagesRaw || 1, USER_JOBS_MAX_PAGES));
+                let distanceTotalKm = sumJobsDistance(AppUtils.getDataArray(pageOne));
+
+                for (let page = 2; page <= totalPages; page += 1) {
+                    const payload = await fetchUserJobsPage(safeUserId, page);
+                    distanceTotalKm += sumJobsDistance(AppUtils.getDataArray(payload));
+                }
+
+                setCachedUserTotalDistance(safeUserId, distanceTotalKm, safeUpdatedAtRef);
+                return distanceTotalKm;
+            } catch (error) {
+                console.warn(`No se pudo calcular distancia total para usuario ${safeUserId}:`, error);
+                return 0;
+            } finally {
+                userTotalsInFlight.delete(cacheKey);
+            }
+        })();
+
+        userTotalsInFlight.set(cacheKey, request);
+        return request;
+    }
+
+    async function enrichMembersWithTotalDistance(members) {
+        if (!Array.isArray(members) || members.length === 0) return [];
+
+        const enriched = [...members];
+        const concurrency = Math.min(4, members.length);
+        let pointer = 0;
+
+        async function worker() {
+            while (pointer < members.length) {
+                const currentIndex = pointer;
+                pointer += 1;
+
+                const member = members[currentIndex];
+                const userId = AppUtils.toNumber(member?.id);
+                if (userId <= 0) continue;
+                const updatedAtRef = String(member?.updatedAt || "");
+
+                const totalDistanceKm = await fetchUserTotalDistanceKm(userId, updatedAtRef);
+                enriched[currentIndex] = {
+                    ...member,
+                    totalDistanceKm: totalDistanceKm > 0 ? totalDistanceKm : AppUtils.toNumber(member.totalKm)
+                };
+            }
+        }
+
+        await Promise.all(Array.from({ length: concurrency }, worker));
+        return enriched;
     }
 
     // ============================================
@@ -577,6 +805,8 @@ window.TruckyService = ((AppUtils, AppApi) => {
         getCachedCompanyData,
         loadWorkersPreview,
         loadCompanyData,
+        fetchUserTotalDistanceKm,
+        enrichMembersWithTotalDistance,
         normalizeMembers,
         normalizeJobs
     };

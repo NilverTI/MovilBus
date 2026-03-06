@@ -51,6 +51,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     let syncInFlight = false;
     let autoRefreshTimerId = null;
     let toastTimerId = null;
+    let membersDistanceRefreshId = 0;
 
     // ============================================
     // NAVEGACIÓN
@@ -732,6 +733,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         RoutesModule.renderRoutes(state.routes, state.source);
         WorkersModule.renderWorkers();
         RankingModule.renderRankings(state);
+        refreshMembersTotalDistance();
     }
 
     function applyWorkersPreview(preview) {
@@ -747,6 +749,27 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         WorkersModule.setState(state);
         WorkersModule.renderWorkers();
+        refreshMembersTotalDistance();
+    }
+
+    function refreshMembersTotalDistance() {
+        if (state.source === "fallback") return;
+        if (!Array.isArray(state.members) || state.members.length === 0) return;
+
+        const refreshId = ++membersDistanceRefreshId;
+
+        TruckyService.enrichMembersWithTotalDistance(state.members)
+            .then((membersWithTotals) => {
+                if (refreshId !== membersDistanceRefreshId) return;
+                if (!Array.isArray(membersWithTotals) || membersWithTotals.length === 0) return;
+
+                state.members = membersWithTotals;
+                WorkersModule.setState(state);
+                WorkersModule.renderWorkers();
+            })
+            .catch((error) => {
+                console.warn("No se pudieron actualizar las distancias totales de miembros:", error);
+            });
     }
 
     function scheduleAutoRefresh() {
