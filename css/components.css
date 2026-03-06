@@ -923,6 +923,10 @@
     font-weight: 700;
 }
 
+.trucky-level {
+    color: var(--orange) !important;
+}
+
 .ranking-section .chip {
     margin: 0 auto 12px;
 }

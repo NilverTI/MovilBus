@@ -38,11 +38,11 @@ window.TruckyService = ((AppUtils, AppApi) => {
     // DATOS FALLBACK
     // ============================================
     const FALLBACK_MEMBERS = [
-        { id: 1, name: "Nilver TI", role: { name: "Conductor" }, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
-        { id: 2, name: "Jeap Rutero", role: { name: "Conductor" }, total_driven_distance_km: 45110, avatar_url: DEFAULT_AVATAR },
-        { id: 3, name: "CarlManu", role: { name: "Conductor" }, total_driven_distance_km: 31980, avatar_url: DEFAULT_AVATAR },
-        { id: 4, name: "Jefferson", role: { name: "Administrador" }, total_driven_distance_km: 51740, avatar_url: DEFAULT_AVATAR },
-        { id: 5, name: "Sahur", role: { name: "Conductor" }, total_driven_distance_km: 26770, avatar_url: DEFAULT_AVATAR }
+        { id: 1, name: "Nilver TI", role: { name: "Conductor" }, level: 14, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
+        { id: 2, name: "Jeap Rutero", role: { name: "Conductor" }, level: 10, total_driven_distance_km: 45110, avatar_url: DEFAULT_AVATAR },
+        { id: 3, name: "CarlManu", role: { name: "Conductor" }, level: 8, total_driven_distance_km: 31980, avatar_url: DEFAULT_AVATAR },
+        { id: 4, name: "Jefferson", role: { name: "Administrador" }, level: 16, total_driven_distance_km: 51740, avatar_url: DEFAULT_AVATAR },
+        { id: 5, name: "Sahur", role: { name: "Conductor" }, level: 7, total_driven_distance_km: 26770, avatar_url: DEFAULT_AVATAR }
     ];
 
     const FALLBACK_JOBS = [
@@ -268,6 +268,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
             id: AppUtils.toNumber(row.id || index + 1),
             name: row.name || row.username || `Conductor ${index + 1}`,
             role: row.role?.name || row.role || "Conductor",
+            level: AppUtils.toNumber(row.level),
             avatar: sanitizeAvatarUrl(row.avatar_url || row.avatar || DEFAULT_AVATAR),
             totalKm: AppUtils.toNumber(row.total_driven_distance_km ?? row.km_driven_total)
         }));

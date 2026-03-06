@@ -102,6 +102,16 @@ window.WorkersModule = ((AppUtils) => {
     }
 
     /**
+     * Formatea el nivel de Trucky para mostrarlo en UI
+     * @param {number|string} level - Nivel de Trucky
+     * @returns {string}
+     */
+    function formatTruckyLevel(level) {
+        const value = AppUtils.toNumber(level);
+        return value > 0 ? AppUtils.formatNumber(value) : "N/D";
+    }
+
+    /**
      * Genera las filas del historial
      * @param {Array} jobs - Lista de trabajos
      * @returns {string}
@@ -148,6 +158,7 @@ window.WorkersModule = ((AppUtils) => {
         const monthKm = appState.monthKmByDriver.get(memberId) || 0;
         const routeAssigned = appState.assignedRouteByDriver.get(memberId) || "No asignada";
         const roleClass = getRoleClass(member.role);
+        const truckyLevel = formatTruckyLevel(member.level);
 
         modalBody.innerHTML = `
             <div class="modal-head">
@@ -177,6 +188,10 @@ window.WorkersModule = ((AppUtils) => {
                 <article class="modal-metric">
                     <p>Total de rutas</p>
                     <strong>${AppUtils.formatNumber(jobs.length)}</strong>
+                </article>
+                <article class="modal-metric">
+                    <p>Nivel Trucky</p>
+                    <strong class="trucky-level">${truckyLevel}</strong>
                 </article>
                 <article class="modal-metric">
                     <p>Rango</p>
@@ -227,6 +242,7 @@ window.WorkersModule = ((AppUtils) => {
             const route = appState.assignedRouteByDriver.get(member.id) || "No asignada";
             const monthKm = appState.monthKmByDriver.get(member.id) || 0;
             const roleClass = getRoleClass(member.role);
+            const truckyLevel = formatTruckyLevel(member.level);
 
             const card = document.createElement("article");
             card.className = "worker-card";
@@ -240,6 +256,7 @@ window.WorkersModule = ((AppUtils) => {
                 </div>
                 <div class="worker-stats">
                     <div class="worker-stat"><span>Ruta</span><span>${route}</span></div>
+                    <div class="worker-stat"><span>Nivel Trucky</span><span class="trucky-level">${truckyLevel}</span></div>
                     <div class="worker-stat"><span>KM del mes</span><span>${AppUtils.formatNumber(monthKm)} km</span></div>
                     <div class="worker-stat"><span>KM Acumulado</span><span>${AppUtils.formatNumber(member.totalKm)} km</span></div>
                 </div>
