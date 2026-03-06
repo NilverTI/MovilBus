@@ -22,7 +22,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     const RADIO_STREAM_URL = "https://streaming.radio.co/s9c2f6713c/listen";
     const RADIO_VOLUME_STORAGE_KEY = "movilbus:radio-volume:v1";
     const STATS_SNAPSHOT_KEY = "movilbus:stats-snapshot:v2";
-    const SESSION_LOADED_KEY = "movilbus:session-loaded:v1";
     const DISCLAIMER_KEY = "movilbus:disclaimer-dismissed:v1";
 
     const NAV_ITEMS = [
@@ -882,13 +881,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             fullPayloadApplied = true;
             applyPayload(livePayload);
             
-            const isFirstLoad = !window.sessionStorage.getItem(SESSION_LOADED_KEY);
-            if (isFirstLoad) {
-                window.sessionStorage.setItem(SESSION_LOADED_KEY, "true");
-                updateDataStatusFromPayload(livePayload, "Datos sincronizados con la API.", true);
-            } else {
-                updateDataStatusFromPayload(livePayload, "Datos sincronizados con la API.", false);
-            }
+            updateDataStatusFromPayload(livePayload, "Datos actualizados.", false);
             
             bindTotalsRefresh(livePayload.totalsRefreshPromise);
             console.info(`Movil Bus sincronizado con datos: ${state.source}`);
