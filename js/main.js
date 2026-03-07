@@ -1011,26 +1011,35 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         modal.innerHTML = `
             <div class="disclaimer-overlay"></div>
-            <div class="disclaimer-card">
-                <div class="disclaimer-header">
-                    <img src="assets/img/icons/PSVLOGO.png" alt="PeruServer" class="disclaimer-logo">
-                    <h2 id="disclaimerTitle" class="disclaimer-title">ATENCIÃƒâ€œN</h2>
-                </div>
-                <div class="disclaimer-content">
-                    <p class="disclaimer-text"><strong>Esta NO es la web oficial de MovilBus.</strong></p>
-                    <p class="disclaimer-text">
-                        La web oficial de MovilBus es: <br>
-                        <a href="https://www.movilbus.pe/" target="_blank" rel="noopener noreferrer" class="disclaimer-link">https://www.movilbus.pe/</a>
-                    </p>
-                    <hr class="disclaimer-divider">
-                    <p class="disclaimer-text">
-                        Esta es una pÃƒÂ¡gina creada especÃƒÂ­ficamente para los jugadores de <strong>Euro Truck Simulator 2</strong> que utilizan el mapa de PerÃƒÂº en <strong>PeruServer.de</strong>
-                    </p>
-                </div>
-                <div class="disclaimer-footer">
-                    <button type="button" class="disclaimer-btn" id="disclaimerAccept">Entendido</button>
-                </div>
-            </div>
+<div class="disclaimer-card">
+    <div class="disclaimer-header">
+        <img src="assets/img/icons/PSVLOGO.png" alt="PeruServer" class="disclaimer-logo">
+        <h2 id="disclaimerTitle" class="disclaimer-title">ATENCIÓN</h2>
+    </div>
+
+    <div class="disclaimer-content">
+        <p class="disclaimer-text"><strong>Esta NO es la web oficial de MovilBus.</strong></p>
+
+        <p class="disclaimer-text">
+            La web oficial de MovilBus es: <br>
+            <a href="https://www.movilbus.pe/" target="_blank" rel="noopener noreferrer" class="disclaimer-link">
+                https://www.movilbus.pe/
+            </a>
+        </p>
+
+        <hr class="disclaimer-divider">
+
+        <p class="disclaimer-text">
+            Esta es una página creada específicamente para los jugadores de 
+            <strong>Euro Truck Simulator 2</strong> que utilizan el mapa de Perú en 
+            <strong>PeruServer.de</strong>
+        </p>
+    </div>
+
+    <div class="disclaimer-footer">
+        <button type="button" class="disclaimer-btn" id="disclaimerAccept">Entendido</button>
+    </div>
+</div>
         `;
 
         document.body.appendChild(modal);
