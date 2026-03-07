@@ -15,25 +15,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movil Bus | Euro Truck Perú</title>
+    <title>MovilBus PeruServer | Euro Truck Simulator 2 Perú</title>
     <meta name="description"
-        content="Movil Bus: servidor de Euro Truck Simulator inspirado en rutas interprovinciales del Perú.">
+        content="MovilBus PeruServer: comunidad peruana de Euro Truck Simulator 2 con rutas interprovinciales, ranking de conductores, mapa de rutas activas y postulación al equipo.">
+    <meta name="keywords"
+        content="movilbus, movil bus peru, movilbus peru, peruserver, peru server, euro truck 2 peru, euro truck simulator 2 peru, ets2 peru, rutas peru ets2, servidor peruano ets2">
+    <meta name="author" content="NILVER T.I">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="theme-color" content="#ff6a00">
+    <meta name="application-name" content="MovilBus PeruServer">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="geo.region" content="PE">
+    <meta name="geo.placename" content="Peru">
     <link rel="canonical" href="https://movilbuspsv.netlify.app/">
+    <link rel="alternate" hreflang="es-PE" href="https://movilbuspsv.netlify.app/">
     <meta property="og:locale" content="es_PE">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Movil Bus | Euro Truck Perú">
+    <meta property="og:site_name" content="MovilBus PeruServer">
     <meta property="og:url" content="https://movilbuspsv.netlify.app/">
-    <meta property="og:title" content="Movil Bus | Euro Truck Perú">
+    <meta property="og:title" content="MovilBus PeruServer | Euro Truck Simulator 2 Perú">
     <meta property="og:description"
-        content="Movil Bus: servidor de Euro Truck Simulator inspirado en rutas interprovinciales del Perú.">
+        content="Comunidad peruana de Euro Truck Simulator 2: rutas activas, ranking y equipo de conductores en MovilBus PeruServer.">
     <meta property="og:image" content="https://movilbuspsv.netlify.app/assets/github/Home.jpeg">
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:alt" content="Vista principal de Movil Bus">
+    <meta property="og:image:width" content="1280">
+    <meta property="og:image:height" content="720">
+    <meta property="og:image:alt" content="Vista principal de MovilBus PeruServer">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Movil Bus | Euro Truck Perú">
+    <meta name="twitter:title" content="MovilBus PeruServer | Euro Truck Simulator 2 Perú">
     <meta name="twitter:description"
-        content="Movil Bus: servidor de Euro Truck Simulator inspirado en rutas interprovinciales del Perú.">
+        content="Rutas activas, ranking y comunidad peruana de Euro Truck Simulator 2 en MovilBus PeruServer.">
     <meta name="twitter:image" content="https://movilbuspsv.netlify.app/assets/github/Home.jpeg">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "MovilBus PeruServer",
+            "url": "https://movilbuspsv.netlify.app/",
+            "description": "Comunidad peruana de Euro Truck Simulator 2 con rutas activas, ranking y equipo de conductores.",
+            "inLanguage": "es-PE",
+            "keywords": [
+                "movilbus",
+                "movilbus peru",
+                "peruserver",
+                "euro truck 2 peru",
+                "euro truck simulator 2 peru",
+                "ets2 peru",
+                "rutas peru ets2"
+            ],
+            "publisher": {
+                "@type": "Organization",
+                "name": "MovilBus PeruServer",
+                "url": "https://movilbuspsv.netlify.app/",
+                "sameAs": [
+                    "https://www.tiktok.com/@movil.bus.psv"
+                ]
+            }
+        }
+    </script>
     <link rel="icon" type="image/webp" href="assets/img/icons/icon.webp">
     <link rel="preload" as="image" href="assets/img/Movil2.webp" type="image/webp" fetchpriority="high">
     <link rel="stylesheet" href="css/styles.css">
@@ -47,7 +87,7 @@
         <div class="radio-widget-overlay">
             <p class="radio-widget-title">RADIO DE:</p>
             <button id="radioToggleButton" class="radio-toggle-button" type="button" aria-label="Reproducir radio">
-                <span id="radioToggleIcon" class="radio-toggle-icon">▶</span>
+                <span id="radioToggleIcon" class="radio-toggle-icon">&#9654;</span>
             </button>
             <input id="radioVolumeRange" class="radio-volume-range" type="range" min="0" max="100" value="65"
                 aria-label="Control de volumen de radio">
@@ -115,8 +155,12 @@
                                 const element = document.getElementById(id);
                                 if (element) element.textContent = format.format(Math.round(Number(value) || 0));
                             };
+                            const writeKm = (id, value) => {
+                                const element = document.getElementById(id);
+                                if (element) element.textContent = format.format(Math.max(0, Math.floor(Number(value) || 0)));
+                            };
 
-                            writeNumber("totalKm", totalKm);
+                            writeKm("totalKm", totalKm);
                             writeNumber("activeDrivers", totalDrivers);
                             writeNumber("completedRoutes", completedRoutes);
                             writeNumber("activeRoutesCount", activeJobsCount);
@@ -166,8 +210,12 @@
                         const element = document.getElementById(id);
                         if (element) element.textContent = format.format(Math.round(value || 0));
                     };
+                    const writeKm = (id, value) => {
+                        const element = document.getElementById(id);
+                        if (element) element.textContent = format.format(Math.max(0, Math.floor(value || 0)));
+                    };
 
-                    writeNumber("totalKm", totalKm);
+                    writeKm("totalKm", totalKm);
                     writeNumber("activeDrivers", totalDrivers);
                     writeNumber("completedRoutes", completedRoutes);
                     writeNumber("activeRoutesCount", activeJobsCount);
@@ -198,67 +246,116 @@
                     </p>
                 </div>
 
-                <div class="about-cards">
-                    <article class="about-card">
-                        <span class="about-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M4 7h9a3 3 0 1 1 0 6H9a3 3 0 1 0 0 6h11" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <circle cx="17" cy="7" r="2" fill="currentColor" />
-                                <circle cx="7" cy="17" r="2" fill="currentColor" />
-                            </svg>
-                        </span>
-                        <h3>Rutas Reales</h3>
-                        <p>Recorre las carreteras más emblemáticas del Perú con mapas basados en la geografía real.</p>
+                <div class="about-showcase">
+                    <article id="psvCertificationCard" class="psv-cert-card about-side-card" data-tier="loading">
+                        <div class="psv-plate-frame">
+                            <div class="psv-plate-rays" aria-hidden="true"></div>
+                            <div class="psv-plate-head">
+                                <div class="psv-plate-head-copy">
+                                    <p class="psv-plate-topline">
+                                        TOP <span id="psvCertHeroRank" class="psv-plate-top-rank">--</span>
+                                    </p>
+                                    <p class="psv-plate-cert">CERTIFICADO POR</p>
+                                </div>
+                                <div class="psv-plate-logo-wrap">
+                                    <img class="psv-plate-logo" src="assets/img/icons/PSVLOGO.png" alt="Logo PeruServer">
+                                </div>
+                            </div>
+
+                            <div class="psv-plate-center">
+                                <div class="psv-plate-emblem" aria-hidden="true">
+                                    <span class="psv-plate-emblem-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+                                            <circle cx="12" cy="8.5" r="5.25" stroke="currentColor" stroke-width="1.8" />
+                                            <path d="M9.1 13.1 7.2 21l4.8-2.7L16.8 21l-1.9-7.9" stroke="currentColor"
+                                                stroke-width="1.8" stroke-linejoin="round" />
+                                            <path d="m12 5.9.93 1.88 2.07.3-1.5 1.46.36 2.06L12 10.71l-1.86.98.36-2.06-1.5-1.46 2.07-.3L12 5.9Z"
+                                                fill="currentColor" stroke="none" />
+                                        </svg>
+                                    </span>
+                                    <span id="psvCertCenterRank" class="psv-plate-emblem-rank">--</span>
+                                </div>
+                                <p class="psv-plate-brand">PERU<span>SERVER</span></p>
+                            </div>
+
+                            <p id="psvCertTitle" class="psv-cert-title">Movil Bus: verificando posicion oficial...</p>
+                            <p id="psvCertSubtitle" class="psv-cert-subtitle">Cargando validacion en ranking de empresas.</p>
+
+                            <div class="psv-cert-pills">
+                                <span class="psv-cert-pill">Mes <strong id="psvCertMonthRank">--</strong></span>
+                                <span class="psv-cert-pill">Anual <strong id="psvCertYearRank">--</strong></span>
+                            </div>
+
+                            <p id="psvCertMeta" class="psv-cert-meta">Fuente: PeruServer + Trucky</p>
+                            <a class="psv-cert-link" href="https://peruserver.de/" target="_blank" rel="noopener noreferrer">
+                                Verificar validez
+                            </a>
+                        </div>
                     </article>
 
-                    <article class="about-card">
-                        <span class="about-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <circle cx="8" cy="9" r="3" stroke="currentColor" stroke-width="2" />
-                                <path d="M2.5 18a5.5 5.5 0 0 1 11 0" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <circle cx="17" cy="8" r="2.5" stroke="currentColor" stroke-width="2" />
-                                <path d="M14 17.5a4.5 4.5 0 0 1 7.5-3.4" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" />
-                            </svg>
-                        </span>
-                        <h3>Comunidad Activa</h3>
-                        <p>Forma parte de un equipo de conductores apasionados por el transporte peruano.</p>
-                    </article>
+                    <div class="about-cards">
+                        <article class="about-card">
+                            <span class="about-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 7h9a3 3 0 1 1 0 6H9a3 3 0 1 0 0 6h11" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" />
+                                    <circle cx="17" cy="7" r="2" fill="currentColor" />
+                                    <circle cx="7" cy="17" r="2" fill="currentColor" />
+                                </svg>
+                            </span>
+                            <h3>Rutas Reales</h3>
+                            <p>Recorre las carreteras más emblemáticas del Perú con mapas basados en la geografía real.
+                            </p>
+                        </article>
 
-                    <article class="about-card">
-                        <span class="about-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M12 21s6-5.4 6-10a6 6 0 1 0-12 0c0 4.6 6 10 6 10Z" stroke="currentColor"
-                                    stroke-width="2" />
-                                <circle cx="12" cy="11" r="2.2" fill="currentColor" />
-                            </svg>
-                        </span>
-                        <h3>Ciudades Peruanas</h3>
-                        <p>Conecta Lima, Arequipa, Cusco, Puno, Trujillo y más destinos.</p>
-                    </article>
+                        <article class="about-card">
+                            <span class="about-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <circle cx="8" cy="9" r="3" stroke="currentColor" stroke-width="2" />
+                                    <path d="M2.5 18a5.5 5.5 0 0 1 11 0" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" />
+                                    <circle cx="17" cy="8" r="2.5" stroke="currentColor" stroke-width="2" />
+                                    <path d="M14 17.5a4.5 4.5 0 0 1 7.5-3.4" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </span>
+                            <h3>Comunidad Activa</h3>
+                            <p>Forma parte de un equipo de conductores apasionados por el transporte peruano.</p>
+                        </article>
 
-                    <article class="about-card">
-                        <span class="about-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M8 4h8v3h3v3a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V7h3V4Z" stroke="currentColor"
-                                    stroke-width="2" />
-                                <path d="M9 15v2a3 3 0 0 0 6 0v-2M7 21h10" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" />
-                            </svg>
-                        </span>
-                        <h3>Ranking Competitivo</h3>
-                        <p>Compite por ser el conductor con más kilómetros recorridos del servidor.</p>
-                    </article>
+                        <article class="about-card">
+                            <span class="about-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 21s6-5.4 6-10a6 6 0 1 0-12 0c0 4.6 6 10 6 10Z" stroke="currentColor"
+                                        stroke-width="2" />
+                                    <circle cx="12" cy="11" r="2.2" fill="currentColor" />
+                                </svg>
+                            </span>
+                            <h3>Ciudades Peruanas</h3>
+                            <p>Conecta Lima, Arequipa, Cusco, Puno, Trujillo y más destinos.</p>
+                        </article>
+
+                        <article class="about-card">
+                            <span class="about-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M8 4h8v3h3v3a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V7h3V4Z"
+                                        stroke="currentColor" stroke-width="2" />
+                                    <path d="M9 15v2a3 3 0 0 0 6 0v-2M7 21h10" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" />
+                                </svg>
+                            </span>
+                            <h3>Ranking Competitivo</h3>
+                            <p>Compite por ser el conductor con más kilómetros recorridos del servidor.</p>
+                        </article>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <div id="section-rutas" data-include="rutas.html"></div>
-        <div id="section-trabajadores" data-include="trabajadores.html"></div>
-        <div id="section-ranking" data-include="ranking.html"></div>
-        <div id="section-postula" data-include="postula.html"></div>
+        <div id="section-rutas" data-include="html/rutas.html"></div>
+        <div id="section-trabajadores" data-include="html/trabajadores.html"></div>
+        <div id="section-ranking" data-include="html/ranking.html"></div>
+        <div id="section-postula" data-include="html/postula.html"></div>
     </main>
 
     <div id="siteFooter"></div>
@@ -286,7 +383,6 @@
     <script src="js/rutas.js" defer></script>
     <script src="js/trabajadores.js" defer></script>
     <script src="js/ranking.js" defer></script>
-    <script src="js/form.js" defer></script>
     <script src="js/main.js" defer></script>
 </body>
 

@@ -7,8 +7,6 @@
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
-
-  Utilities Module - Funciones de utilidad compartidas
 */
 
 "use strict";

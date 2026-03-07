@@ -129,30 +129,6 @@ window.RoutesModule = ((AppUtils) => {
     }
 
     /**
-     * Obtiene las últimas rutas por conductor en las últimas N horas
-     */
-    function getLatestRoutePerDriverInLastHours(jobs, hours = LAST_ROUTE_WINDOW_HOURS) {
-        const threshold = Date.now() - hours * 60 * 60 * 1000;
-
-        const recentJobs = jobs
-            .filter((job) => {
-                const time = AppUtils.getDateMs(getRouteReferenceDate(job));
-                return time >= threshold;
-            })
-            .sort(AppUtils.compareByDateDesc);
-
-        const byDriver = new Map();
-
-        recentJobs.forEach((job) => {
-            const driverKey = job.userId || AppUtils.normalizeText(job.driverName);
-            if (!driverKey || byDriver.has(driverKey)) return;
-            byDriver.set(driverKey, job);
-        });
-
-        return [...byDriver.values()];
-    }
-
-    /**
      * Verifica si un viaje está en progreso
      */
     function isOpenTrip(job) {
@@ -748,7 +724,6 @@ window.RoutesModule = ((AppUtils) => {
 
     return {
         LAST_ROUTE_WINDOW_HOURS,
-        getLatestRoutePerDriverInLastHours,
         getLatestOpenRoutePerDriverInLastHours,
         buildRouteTrips,
         getAssignedRouteByDriver,

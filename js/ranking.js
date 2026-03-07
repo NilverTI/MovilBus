@@ -52,6 +52,7 @@ window.RankingModule = ((AppUtils) => {
         }
 
         rows.forEach((row, index) => {
+            const safeKm = Math.max(0, Math.floor(AppUtils.toNumber(row.km)));
             const element = document.createElement("article");
             element.className = "ranking-row";
             element.style.animationDelay = `${index * 80}ms`;
@@ -66,10 +67,22 @@ window.RankingModule = ((AppUtils) => {
                     >
                     <strong class="ranking-name">${row.name}</strong>
                 </div>
-                <span class="rank-km">${AppUtils.formatNumber(row.km)} km</span>
+                <span class="rank-km">${AppUtils.formatNumber(safeKm)} km</span>
             `;
             container.appendChild(element);
         });
+    }
+
+    function isDriverMember(member) {
+        const role = AppUtils.normalizeText(member?.role || "");
+        if (!role) return true;
+        return !role.includes("owner");
+    }
+
+    function getHistoricKm(member) {
+        const accumulatedFromProfile = AppUtils.toNumber(member?.totalDistanceKm);
+        if (accumulatedFromProfile > 0) return accumulatedFromProfile;
+        return AppUtils.toNumber(member?.totalKm);
     }
 
     /**
@@ -80,6 +93,7 @@ window.RankingModule = ((AppUtils) => {
      */
     function processMonthlyRanking(members, monthKmByDriver) {
         return members
+            .filter(isDriverMember)
             .map((member) => ({
                 id: member.id,
                 name: member.name,
@@ -97,11 +111,12 @@ window.RankingModule = ((AppUtils) => {
      */
     function processHistoricRanking(members) {
         return members
+            .filter(isDriverMember)
             .map((member) => ({
                 id: member.id,
                 name: member.name,
                 avatar: member.avatar,
-                km: member.totalKm
+                km: getHistoricKm(member)
             }))
             .sort((a, b) => b.km - a.km)
             .slice(0, MAX_RANKING_ITEMS);

@@ -1,156 +1,144 @@
-﻿# MovilBus Web
+# MovilBus Web
 
-![Home MovilBus](assets/github/Home.jpeg)
+Sitio web de MovilBus para la comunidad de Euro Truck Simulator 2 (PeruServer), construido con HTML, CSS y JavaScript vanilla.
 
-Sitio web oficial de **MovilBus**, servidor peruano de **Euro Truck Simulator 2**, desarrollado en HTML, CSS y JavaScript puro (sin frameworks).
+![Vista principal MovilBus](assets/github/Home.jpeg)
 
-## Descripción
+## Demo en vivo
 
-La web presenta una experiencia premium y minimalista para mostrar:
-- Información del servidor.
-- Rutas activas en Perú.
+- Produccion: https://movilbuspsv.netlify.app/
+
+## Resumen
+
+Esta web centraliza en una sola pagina:
+
+- Estado general del servidor.
+- Rutas activas con mapa interactivo.
 - Equipo de conductores.
-- Ranking mensual e histórico por kilómetros.
-- Formulario oficial de postulación.
+- Ranking mensual e historico.
+- Postulacion oficial mediante Google Forms.
 
-Todo el contenido principal se carga en una sola página (`index.html`) con secciones modulares.
+La base es `index.html`, y las secciones se cargan como parciales HTML desde `html/`.
 
-## Funcionalidades principales
+## Caracteristicas principales
 
-- Hero principal con CTA de postulación y navegación por anclas.
-- Navbar fija con estado activo por sección (scroll/hash).
-- Menú móvil con botón hamburguesa.
-- Sección Nosotros con tarjetas informativas.
-- Mapa de Perú con marcadores de rutas activas.
-- Lista de viajes como botones con modal de detalle.
-- Equipo de conductores con modal por perfil e historial.
-- Ranking Top 5 del mes y Top 5 histórico con avatar.
-- Integración de Google Forms embebido + botón externo.
-- Footer personalizado con navegación interna y TikTok.
-- Diseño responsive y animaciones suaves.
+- Navbar fija con navegacion por anclas y estado activo por scroll/hash.
+- Hero con carrusel, CTA y metricas principales.
+- Mapa de Peru con rutas activas y modal de detalle por viaje.
+- Tarjetas de conductores con modal de estadisticas e historial.
+- Ranking Top 5 mensual y Top 5 historico.
+- Integracion de formulario externo de postulacion.
+- Interfaz responsive para movil, tablet y escritorio.
 
-## Lógica de datos (Trucky API)
+## Integracion de datos (Trucky API)
 
-La app consume datos de la compañía **41407** en Trucky.
+Compania objetivo: `41407`
 
 - Base API: `https://e.truckyapp.com/`
-- Integrantes: `/members`
-- Trabajos (paginado): `/jobs`
-- Rutas activas
+- Endpoints principales:
+  - `/members`
+  - `/jobs`
+  - `/jobs?status=in_progress...`
 
-### Reglas implementadas
+Reglas actuales:
 
-- Para rutas activas se usa la **última ruta en curso por conductor**.
-- Filtro de ventana: **últimas 72 horas**.
-- Solo se consideran trabajos `in_progress` no completados.
-- El contador de "Trabajos activos" en el hero refleja ese resultado.
-- Si la API falla, entra modo fallback con `mock` interno.
+- Se muestra la ultima ruta en curso por conductor.
+- Ventana de analisis: ultimas `72` horas.
+- Si la API no responde, se usa fallback local.
 
-## Secciones de la web
-
-- `#inicio`: portada + métricas globales.
-- `#nosotros`: propuesta del servidor y experiencia.
-- `#rutas`: mapa + listado de rutas activas + modal de viaje.
-- `#trabajadores`: cards de conductores + modal con estadísticas.
-- `#ranking`: top mensual e histórico.
-- `#postula`: formulario oficial de Google Forms.
-
-## Tecnologías
+## Stack tecnico
 
 - HTML5
-- CSS3 (modular)
-- JavaScript Vanilla (módulos globales por archivo)
-- Fetch API
+- CSS3 modular (`variables`, `layout`, `components`, `animations`)
+- JavaScript vanilla modular por archivo
+- Fetch API + cache local (`localStorage`)
 
 ## Estructura del proyecto
 
 ```text
 movilbus-web/
-├── index.html
-├── rutas.html
-├── trabajadores.html
-├── ranking.html
-├── postula.html
-├── assets/
-│   ├── github/
-│   │   └── Home.jpeg
-│   └── img/
-│       ├── logo.png
-│       ├── mapa-peru.png
-│       ├── Mobil.jpeg
-│       ├── default-avatar.svg
-│       └── icons/
-│           └── icon.webp
-├── css/
-│   ├── variables.css
-│   ├── layout.css
-│   ├── components.css
-│   ├── animations.css
-│   └── styles.css
-├── js/
-│   ├── utils.js
-│   ├── api.js
-│   ├── rutas.js
-│   ├── trabajadores.js
-│   ├── ranking.js
-│   ├── form.js
-│   └── main.js
-└── services/
-    └── truckyService.js
+|-- index.html
+|-- README.md
+|-- html/
+|   |-- rutas.html
+|   |-- trabajadores.html
+|   |-- ranking.html
+|   `-- postula.html
+|-- css/
+|   |-- variables.css
+|   |-- layout.css
+|   |-- components.css
+|   |-- animations.css
+|   `-- styles.css
+|-- js/
+|   |-- utils.js
+|   |-- api.js
+|   |-- rutas.js
+|   |-- trabajadores.js
+|   |-- ranking.js
+|   `-- main.js
+|-- services/
+|   `-- truckyService.js
+`-- assets/
+    |-- github/
+    |   `-- Home.jpeg
+    `-- img/
+        |-- logo.svg
+        |-- mapa-peru.png
+        |-- Movil.webp
+        |-- default-avatar.svg
+        `-- icons/
+            |-- icon.webp
+            `-- PSVLOGO.png
 ```
 
-## Cómo ejecutar en local
+## Ejecucion local
 
-Necesitas un servidor local (no abrir con `file://`), porque se cargan secciones HTML por `fetch`.
+Necesita servidor HTTP local (no abrir con `file://`).
 
-### Opción 1: VS Code Live Server
-1. Abrir carpeta del proyecto en VS Code.
+### Opcion 1: VS Code Live Server
+
+1. Abrir el proyecto en VS Code.
 2. Click derecho en `index.html`.
-3. Seleccionar **Open with Live Server**.
+3. Seleccionar `Open with Live Server`.
 
-### Opción 2: Python
+### Opcion 2: Python
+
 ```bash
 python -m http.server 5500
 ```
-Luego abrir:
-`http://127.0.0.1:5500/`
 
-## Configuración rápida
+Abrir en navegador: `http://127.0.0.1:5500/`
 
-### Cambiar compañía Trucky
-Editar en [`js/api.js`](js/api.js):
-- `API_BASE`
+## Configuracion rapida
+
+### Cambiar compania de Trucky
+
+Editar `API_BASE` en [js/api.js](js/api.js).
 
 ### Cambiar ventana de rutas activas
-Editar en [`js/rutas.js`](js/rutas.js):
-- `LAST_ROUTE_WINDOW_HOURS`
 
-### Cambiar enlace de postulación
-Editar en [`postula.html`](postula.html):
-- `href` del botón
-- `src` del iframe
+Editar `LAST_ROUTE_WINDOW_HOURS` en [js/rutas.js](js/rutas.js).
 
-### Cambiar TikTok del footer
-Editar en [`js/main.js`](js/main.js) dentro de `renderSiteFrame()`.
+### Cambiar enlace de postulacion
 
-## Responsive
+Editar `href` y `src` en [html/postula.html](html/postula.html).
 
-La web está optimizada para móvil, tablet y escritorio con breakpoints principales en:
-- `1200px`
-- `990px`
-- `860px`
-- `680px`
-- `480px`
+### Cambiar enlaces del header/footer
 
-Incluye ajustes de:
-- Tipografía y spacing.
-- Hero adaptable.
-- Grids de rutas/conductores/ranking.
-- Modal en pantallas pequeñas.
-- Navegación móvil desplegable.
+Editar `renderSiteFrame()` en [js/main.js](js/main.js).
 
-## Créditos
+## Secciones disponibles
 
-- Proyecto: **MovilBus**
-- Desarrollo: **NILVER T.I**
-- Integración de datos: **Trucky API**
+- `#inicio`
+- `#nosotros`
+- `#rutas`
+- `#trabajadores`
+- `#ranking`
+- `#postula`
+
+## Creditos
+
+- Proyecto: MovilBus
+- Desarrollo: NILVER T.I
+- Fuente de datos: Trucky API

@@ -1,9 +1,9 @@
-/* 
+﻿/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
 / /_| ||  /| |/ /_| |
-\_CONEXIÓN INESTABLE| _
+\_CONEXIÃ“N INESTABLE| _
     |_/ \___/     |_/(_)
 
   https://movilbuspsv.netlify.app/
@@ -13,7 +13,7 @@
 
 "use strict";
 
-window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule, FormModule) => {
+window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, RankingModule) => {
     // ============================================
     // CONSTANTES
     // ============================================
@@ -45,7 +45,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         recentDriverRoutes: [],
         monthKmByDriver: new Map(),
         assignedRouteByDriver: new Map(),
-        routes: []
+        routes: [],
+        peruServerCertification: null
     };
 
     let syncInFlight = false;
@@ -54,7 +55,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     let membersDistanceRefreshId = 0;
 
     // ============================================
-    // NAVEGACIÓN
+    // NAVEGACIÃƒâ€œN
     // ============================================
 
     function setNavActive(key) {
@@ -158,7 +159,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     // ============================================
-    // ESTADÍSTICAS
+    // ESTADÃƒÂSTICAS
     // ============================================
 
     function getMonthKmByDriver(jobs) {
@@ -185,9 +186,16 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         return AppUtils.normalizeText(member?.role || "").includes("owner");
     }
 
+    function getMemberDisplayDistance(member) {
+        const accumulatedFromProfile = AppUtils.toNumber(member?.totalDistanceKm);
+        if (accumulatedFromProfile > 0) return accumulatedFromProfile;
+        return AppUtils.toNumber(member?.totalKm);
+    }
+
     function renderStats() {
-        const membersTotalKm = state.members.reduce((sum, member) => sum + member.totalKm, 0);
-        const totalKm = AppUtils.toNumber(state.companyTotals?.totalDistance) || membersTotalKm;
+        const membersTotalKm = state.members.reduce((sum, member) => sum + getMemberDisplayDistance(member), 0);
+        const totalKmRaw = AppUtils.toNumber(state.companyTotals?.totalDistance) || membersTotalKm;
+        const totalKm = Math.max(0, Math.floor(totalKmRaw));
         const completedRoutes = AppUtils.toNumber(state.companyTotals?.totalJobs)
             || state.jobs.filter((job) => job.status === "completed").length;
         const totalDrivers = state.members.filter((member) => !isOwnerMember(member)).length;
@@ -215,6 +223,88 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             }));
         } catch {
             // Ignore storage errors
+        }
+    }
+
+    function formatDateTime(isoString) {
+        if (!isoString) return "Sin fecha";
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return "Sin fecha";
+        return date.toLocaleString("es-PE", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
+
+    function getCertificationTier(rank) {
+        const safeRank = AppUtils.toNumber(rank);
+        if (safeRank <= 0) return "unavailable";
+        if (safeRank === 1) return "top1";
+        if (safeRank === 2) return "top2";
+        if (safeRank === 3) return "top3";
+        if (safeRank <= 10) return "top10";
+        return "top35";
+    }
+    function renderPeruServerCertification(certification) {
+        const card = document.getElementById("psvCertificationCard");
+        const title = document.getElementById("psvCertTitle");
+        const subtitle = document.getElementById("psvCertSubtitle");
+        const heroRank = document.getElementById("psvCertHeroRank");
+        const centerRank = document.getElementById("psvCertCenterRank");
+        const monthRank = document.getElementById("psvCertMonthRank");
+        const yearRank = document.getElementById("psvCertYearRank");
+        const meta = document.getElementById("psvCertMeta");
+
+        if (!card || !title || !subtitle || !heroRank || !centerRank || !monthRank || !yearRank || !meta) return;
+
+        const monthly = certification?.monthly || null;
+        const accumulated = certification?.accumulated || null;
+        const bestRank = AppUtils.toNumber(monthly?.rank || accumulated?.rank);
+        const totalCompanies = AppUtils.toNumber(monthly?.totalCompanies || accumulated?.totalCompanies);
+        const monthlyDistanceKm = AppUtils.toNumber(monthly?.distanceKm);
+        const monthlyPercentVsLeader = AppUtils.toNumber(monthly?.percentVsLeader);
+        const updatedAt = monthly?.updatedAt || accumulated?.updatedAt || "";
+
+        card.dataset.tier = getCertificationTier(bestRank);
+
+        if (bestRank > 0) {
+            heroRank.textContent = `#${bestRank}`;
+            centerRank.textContent = String(bestRank);
+            title.textContent = "Reconocimiento oficial a Movil Bus";
+            subtitle.textContent = monthlyDistanceKm > 0
+                ? `${AppUtils.formatNumber(monthlyDistanceKm)} km este mes (${monthlyPercentVsLeader.toFixed(1)}% del #1).`
+                : "Posicion validada en ranking oficial de empresas.";
+            monthRank.textContent = monthly?.rank ? `#${monthly.rank}` : "N/D";
+            yearRank.textContent = accumulated?.rank ? `#${accumulated.rank}` : "N/D";
+
+            const sourceLabel = certification?.source === "api"
+                ? "en vivo"
+                : certification?.source === "cache"
+                    ? "cache local"
+                    : "cache de respaldo";
+            meta.textContent = `Top ${totalCompanies > 0 ? AppUtils.formatNumber(totalCompanies) : "35"} empresas | ${sourceLabel} | ${formatDateTime(updatedAt)}`;
+            return;
+        }
+
+        heroRank.textContent = "--";
+        centerRank.textContent = "--";
+        title.textContent = "Certificacion PeruServer no disponible";
+        subtitle.textContent = "No se pudo validar la posicion actual por ahora.";
+        monthRank.textContent = "N/D";
+        yearRank.textContent = "N/D";
+        meta.textContent = "Reintento automatico activo (PeruServer + Trucky)";
+    }
+    async function refreshPeruServerCertification() {
+        try {
+            const certification = await TruckyService.loadPeruServerCertification();
+            state.peruServerCertification = certification;
+            renderPeruServerCertification(certification);
+        } catch (error) {
+            console.warn("No se pudo cargar certificacion PeruServer:", error);
+            renderPeruServerCertification(null);
         }
     }
 
@@ -348,11 +438,62 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         revealItems.forEach((element) => observer.observe(element));
     }
+    // ============================================
+    // PROTECCION BASICA DEL CLIENTE
+    // ============================================
+
+    function setupClientProtection() {
+        if (document.body?.dataset.protectionReady === "true") return;
+        if (document.body) document.body.dataset.protectionReady = "true";
+        let lastPromptAt = 0;
+        const devtoolsMessage = [
+            "Quieres el codigo de la web? Anda a:",
+            "",
+            "https://github.com/NilverTI/MovilBus",
+            "",
+            "Creditos a NILVER T.I"
+        ].join("\n");
+
+        document.addEventListener("contextmenu", (event) => {
+            event.preventDefault();
+        });
+
+        window.addEventListener("keydown", (event) => {
+            const key = String(event.key || "").toLowerCase();
+            const isF12 = key === "f12" || event.keyCode === 123;
+            const isBlockedShortcut = event.ctrlKey && event.shiftKey && ["i", "j", "c"].includes(key);
+
+            if (isF12 || isBlockedShortcut) {
+                event.preventDefault();
+                event.stopPropagation();
+                const now = Date.now();
+                if (now - lastPromptAt > 1200) {
+                    lastPromptAt = now;
+                    window.alert(devtoolsMessage);
+                }
+            }
+        }, true);
+    }
+
+    function showConsoleBanner() {
+        const banner = `<!--
+   ___  _____    ___
+  /   ||  _  |  /   | _
+ / /| || |/' | / /| |(_)
+/ /_| ||  /| |/ /_| |
+\\_CONEXIÃƒâ€œN INESTABLE| _
+    |_/ \\___/     |_/(_)
+
+    https://movilbuspsv.netlify.app/
+ -->`;
+
+        console.clear();
+        console.log(banner);
+    }
 
     // ============================================
-    // NAVEGACIÓN
+    // NAVEGACIÃƒâ€œN
     // ============================================
-
     function setupNavigation() {
         const navbar = document.querySelector(".navbar");
         if (!navbar) return;
@@ -367,6 +508,39 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             navToggle.setAttribute("aria-expanded", "false");
         };
 
+        const getAnchorScrollTop = (targetId) => {
+            const section = document.getElementById(targetId);
+            if (!section) return null;
+
+            const navOffset = navbar.getBoundingClientRect().height || 70;
+            const sectionTop = window.scrollY + section.getBoundingClientRect().top;
+
+            // "Nosotros" se centra en viewport cuando es posible.
+            if (targetId === "nosotros") {
+                const availableHeight = window.innerHeight - navOffset;
+                const centerOffset = Math.max((availableHeight - section.offsetHeight) / 2, 12);
+                return Math.max(sectionTop - navOffset - centerOffset, 0);
+            }
+
+            return Math.max(sectionTop - navOffset - 12, 0);
+        };
+
+        const smoothScrollToAnchor = (targetId, updateHash = true) => {
+            const targetTop = getAnchorScrollTop(targetId);
+            if (targetTop === null) return false;
+
+            window.scrollTo({ top: targetTop, behavior: "smooth" });
+            setNavActive(targetId);
+
+            if (updateHash) {
+                const nextHash = `#${targetId}`;
+                if (window.location.hash !== nextHash) {
+                    history.pushState(null, "", nextHash);
+                }
+            }
+            return true;
+        };
+
         if (navToggle && siteNav) {
             navToggle.addEventListener("click", (event) => {
                 event.stopPropagation();
@@ -376,7 +550,16 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             });
 
             siteNav.querySelectorAll("a").forEach((link) => {
-                link.addEventListener("click", closeMobileNav);
+                link.addEventListener("click", (event) => {
+                    const href = link.getAttribute("href") || "";
+                    if (href.startsWith("#")) {
+                        const targetId = href.slice(1);
+                        if (targetId && smoothScrollToAnchor(targetId)) {
+                            event.preventDefault();
+                        }
+                    }
+                    closeMobileNav();
+                });
             });
 
             document.addEventListener("click", (event) => {
@@ -418,9 +601,20 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         window.addEventListener("scroll", onScroll, { passive: true });
 
         window.addEventListener("hashchange", () => {
-            setNavActive(getHashNavKey());
+            const key = getHashNavKey();
+            setNavActive(key);
+            if (key && key !== "inicio") {
+                smoothScrollToAnchor(key, false);
+            }
             closeMobileNav();
         });
+
+        const initialKey = getHashNavKey();
+        if (initialKey && initialKey !== "inicio") {
+            window.setTimeout(() => {
+                smoothScrollToAnchor(initialKey, false);
+            }, 0);
+        }
     }
 
     // ============================================
@@ -479,11 +673,13 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         const radio = new Audio(RADIO_STREAM_URL);
         radio.preload = "none";
+        const PLAY_ICON = "\u25B6";
+        const PAUSE_ICON = "\u275A\u275A";
 
         const updateUiState = (isPlaying) => {
             widget.dataset.state = isPlaying ? "playing" : "paused";
             toggleButton.classList.toggle("is-playing", isPlaying);
-            toggleIcon.textContent = isPlaying ? "❚❚" : "▶";
+            toggleIcon.textContent = isPlaying ? PAUSE_ICON : PLAY_ICON;
             toggleButton.setAttribute("aria-label", isPlaying ? "Pausar radio" : "Reproducir radio");
         };
 
@@ -766,6 +962,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 state.members = membersWithTotals;
                 WorkersModule.setState(state);
                 WorkersModule.renderWorkers();
+                RankingModule.renderRankings(state);
+                renderStats();
             })
             .catch((error) => {
                 console.warn("No se pudieron actualizar las distancias totales de miembros:", error);
@@ -783,6 +981,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 const payload = await TruckyService.loadCompanyData();
                 applyPayload(payload);
                 bindTotalsRefresh(payload.totalsRefreshPromise);
+                refreshPeruServerCertification();
             } catch (error) {
                 console.warn("No se pudo actualizar automaticamente:", error);
             } finally {
@@ -815,7 +1014,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             <div class="disclaimer-card">
                 <div class="disclaimer-header">
                     <img src="assets/img/icons/PSVLOGO.png" alt="PeruServer" class="disclaimer-logo">
-                    <h2 id="disclaimerTitle" class="disclaimer-title">ATENCIÓN</h2>
+                    <h2 id="disclaimerTitle" class="disclaimer-title">ATENCIÃƒâ€œN</h2>
                 </div>
                 <div class="disclaimer-content">
                     <p class="disclaimer-text"><strong>Esta NO es la web oficial de MovilBus.</strong></p>
@@ -825,7 +1024,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                     </p>
                     <hr class="disclaimer-divider">
                     <p class="disclaimer-text">
-                        Esta es una página creada específicamente para los jugadores de <strong>Euro Truck Simulator 2</strong> que utilizan el mapa de Perú en <strong>PeruServer.de</strong>
+                        Esta es una pÃƒÂ¡gina creada especÃƒÂ­ficamente para los jugadores de <strong>Euro Truck Simulator 2</strong> que utilizan el mapa de PerÃƒÂº en <strong>PeruServer.de</strong>
                     </p>
                 </div>
                 <div class="disclaimer-footer">
@@ -854,13 +1053,16 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     // ============================================
-    // INICIALIZACIÓN
+    // INICIALIZACIÃƒâ€œN
     // ============================================
 
     async function init() {
         renderSiteFrame();
+        setupClientProtection();
+        showConsoleBanner();
         showDisclaimerAlert();
         setDataStatus("Cargando datos en vivo...", "loading");
+        refreshPeruServerCertification();
 
         const livePayloadPromise = TruckyService.loadCompanyData();
         const workersPreviewPromise = TruckyService.loadWorkersPreview();
@@ -883,7 +1085,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         setupParallax();
         RoutesModule.setupModalEvents();
         WorkersModule.setupModalEvents();
-        FormModule.setupForm();
 
         if (cachedPayload) {
             applyPayload(cachedPayload);
@@ -921,7 +1122,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         }
     }
 
-    // Iniciar cuando el DOM esté listo
+    // Iniciar cuando el DOM estÃƒÂ© listo
     document.addEventListener("DOMContentLoaded", init);
 
     return {
@@ -933,6 +1134,6 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     window.TruckyService,
     window.RoutesModule,
     window.WorkersModule,
-    window.RankingModule,
-    window.FormModule
+    window.RankingModule
 );
+

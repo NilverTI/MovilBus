@@ -158,14 +158,18 @@
 }
 
 .about-section {
-    background: #f7f7f7;
-    padding: clamp(100px, 8vw, 200px) 0;
+    background: #ffffff;
+    padding: clamp(34px, 3.8vw, 66px) 0;
 }
 
 #nosotros,
 #trabajadores,
 #postula {
     background: #ffffff;
+}
+
+#nosotros .container {
+    width: min(1180px, 94vw);
 }
 
 #rutas,
@@ -194,14 +198,15 @@
 }
 
 .about-intro {
-    max-width: 860px;
+    max-width: 900px;
     margin: 0 auto;
     text-align: center;
+    padding-top: 40px;
 }
 
 .about-title {
     margin: 0;
-    font-size: clamp(1.9rem, 4.2vw, 3.2rem);
+    font-size: clamp(1.8rem, 3.5vw, 2.9rem);
     line-height: 1.12;
     font-weight: 800;
     color: #1b1e22;
@@ -209,17 +214,30 @@
 
 .about-copy {
     max-width: 760px;
-    margin: 16px auto 0;
+    margin: 12px auto 0;
     color: #5f6770;
     font-size: clamp(0.94rem, 1.2vw, 1.03rem);
-    line-height: 1.6;
+    line-height: 1.52;
 }
 
 .about-cards {
-    margin-top: 36px;
+    margin-top: 0;
+    width: 100%;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
+}
+
+.about-showcase {
+    margin-top: 16px;
+    margin-bottom: 40px;
+    width: min(100%, 1120px);
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+    justify-content: center;
 }
 
 .routes-layout {
@@ -283,16 +301,6 @@
     gap: 18px;
 }
 
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-}
-
-.full-width {
-    grid-column: 1 / -1;
-}
-
 .modal-grid {
     margin-top: 14px;
     display: grid;
@@ -315,6 +323,42 @@
     }
 }
 
+@media (max-width: 1120px) {
+    .about-showcase {
+        max-width: 900px;
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-height: 1080px) and (min-width: 1121px) {
+    .about-section {
+        padding: 26px 0 34px;
+    }
+
+    .about-intro {
+        padding-top: 14px;
+    }
+
+    .about-title {
+        font-size: clamp(1.75rem, 2.9vw, 2.55rem);
+    }
+
+    .about-showcase {
+        margin-top: 10px;
+        margin-bottom: 16px;
+        gap: 12px;
+    }
+
+    .about-copy {
+        margin-top: 8px;
+        line-height: 1.45;
+    }
+
+    .about-cards {
+        gap: 12px;
+    }
+}
+
 @media (max-width: 990px) {
     :root {
         --nav-height: 64px;
@@ -322,18 +366,13 @@
 
     .workers-grid,
     .ranking-grid,
-    .modal-grid,
-    .form-grid {
+    .modal-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .routes-layout {
         grid-template-columns: 1fr;
         width: min(100%, 760px);
-    }
-
-    .about-cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .hero {
@@ -419,10 +458,6 @@
     .modal-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 680px) {
@@ -431,11 +466,13 @@
     }
 
     .stats-grid,
-    .about-cards,
     .workers-grid,
     .ranking-grid,
-    .modal-grid,
-    .form-grid {
+    .modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .about-cards {
         grid-template-columns: 1fr;
     }
 

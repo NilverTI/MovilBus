@@ -33,6 +33,10 @@ window.TruckyService = ((AppUtils, AppApi) => {
     const USER_JOBS_MAX_PAGES = 60;
     const USER_TOTALS_TIMEOUT_MS = 12000;
     const FAST_JOBS_ENDPOINT = "/jobs?top=0&page=1&perPage=100&sortingField=updated_at&sortingDirection=desc";
+    const PERUSERVER_TOP_CACHE_KEY = "movilbus:peruserver-top:v1";
+    const PERUSERVER_TOP_CACHE_MS = 10 * 60 * 1000;
+    const PERUSERVER_TOP_TIMEOUT_MS = 9000;
+    const PERUSERVER_TOP_MONTHLY_URL = "https://api.mdcdev.me/v2/peruserver/trucky/top-km/monthly?limit=50";
 
     const PLACEHOLDER_AVATAR_SIGNATURES = [
         "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
@@ -555,6 +559,138 @@ window.TruckyService = ((AppUtils, AppApi) => {
         return enriched;
     }
 
+    function buildPeruServerAccumulatedUrl(year = new Date().getFullYear()) {
+        const safeYear = Math.max(2020, AppUtils.toNumber(year) || new Date().getFullYear());
+        return `https://api.mdcdev.me/v2/peruserver/trucky/top-km?month=1&year=${safeYear}&limit=50`;
+    }
+
+    function getCachedPeruServerCertification() {
+        const stored = readStorage(PERUSERVER_TOP_CACHE_KEY);
+        if (!stored || typeof stored !== "object") return null;
+        if (!stored.monthly && !stored.accumulated) return null;
+
+        return {
+            source: String(stored.source || "cache"),
+            companyId: AppUtils.toNumber(stored.companyId),
+            fetchedAt: AppUtils.toNumber(stored.fetchedAt),
+            monthly: stored.monthly || null,
+            accumulated: stored.accumulated || null
+        };
+    }
+
+    function savePeruServerCertification(payload) {
+        if (!payload || typeof payload !== "object") return;
+        writeStorage(PERUSERVER_TOP_CACHE_KEY, {
+            source: String(payload.source || "api"),
+            companyId: AppUtils.toNumber(payload.companyId),
+            fetchedAt: AppUtils.toNumber(payload.fetchedAt || Date.now()),
+            monthly: payload.monthly || null,
+            accumulated: payload.accumulated || null
+        });
+    }
+
+    function normalizePeruServerItem(item, index) {
+        return {
+            rank: index + 1,
+            companyId: AppUtils.toNumber(item?.id),
+            name: String(item?.name || "Empresa"),
+            tag: String(item?.tag || ""),
+            distanceKm: AppUtils.toNumber(item?.distance ?? item?.distance_field),
+            members: AppUtils.toNumber(item?.members),
+            totalJobs: AppUtils.toNumber(item?.total_jobs),
+            updatedAt: String(item?.updated || "")
+        };
+    }
+
+    function parsePeruServerView(payload, companyId, view) {
+        if (!payload || typeof payload !== "object") return null;
+
+        const rows = Array.isArray(payload.items) ? payload.items : [];
+        const normalized = rows.map(normalizePeruServerItem);
+        const leader = normalized[0] || null;
+        const companyRow = normalized.find((row) => row.companyId === companyId) || null;
+        const totalCompanies = AppUtils.toNumber(payload.count_companies_processed) || normalized.length;
+
+        const leaderDistanceKm = AppUtils.toNumber(leader?.distanceKm);
+        const distanceKm = AppUtils.toNumber(companyRow?.distanceKm);
+        const percentVsLeader = leaderDistanceKm > 0
+            ? (distanceKm / leaderDistanceKm) * 100
+            : 0;
+
+        return {
+            view,
+            found: !!companyRow,
+            rank: AppUtils.toNumber(companyRow?.rank),
+            totalCompanies,
+            companyName: String(companyRow?.name || ""),
+            companyTag: String(companyRow?.tag || ""),
+            distanceKm,
+            members: AppUtils.toNumber(companyRow?.members),
+            totalJobs: AppUtils.toNumber(companyRow?.totalJobs),
+            updatedAt: String(companyRow?.updatedAt || leader?.updatedAt || ""),
+            month: AppUtils.toNumber(payload.month),
+            year: AppUtils.toNumber(payload.year),
+            leaderDistanceKm,
+            percentVsLeader: Number.isFinite(percentVsLeader) ? percentVsLeader : 0
+        };
+    }
+
+    async function loadPeruServerCertification() {
+        const companyId = extractCompanyId();
+        const cached = getCachedPeruServerCertification();
+        const cacheAge = cached ? Date.now() - AppUtils.toNumber(cached.fetchedAt) : Number.POSITIVE_INFINITY;
+
+        if (cached && cacheAge >= 0 && cacheAge <= PERUSERVER_TOP_CACHE_MS) {
+            return {
+                ...cached,
+                source: "cache"
+            };
+        }
+
+        const currentYear = new Date().getFullYear();
+        const requests = await Promise.allSettled([
+            fetchAbsoluteJson(PERUSERVER_TOP_MONTHLY_URL, PERUSERVER_TOP_TIMEOUT_MS),
+            fetchAbsoluteJson(buildPeruServerAccumulatedUrl(currentYear), PERUSERVER_TOP_TIMEOUT_MS)
+        ]);
+
+        const monthlyPayload = requests[0].status === "fulfilled" ? requests[0].value : null;
+        const accumulatedPayload = requests[1].status === "fulfilled" ? requests[1].value : null;
+
+        const monthly = parsePeruServerView(monthlyPayload, companyId, "monthly");
+        const accumulated = parsePeruServerView(accumulatedPayload, companyId, "accumulated");
+
+        if (!monthly && !accumulated) {
+            const reason = requests.find((result) => result.status === "rejected");
+            console.warn("No se pudo cargar certificacion PeruServer:", reason?.reason || "sin datos");
+
+            if (cached) {
+                return {
+                    ...cached,
+                    source: "cache-stale"
+                };
+            }
+
+            return {
+                source: "unavailable",
+                companyId,
+                fetchedAt: Date.now(),
+                monthly: null,
+                accumulated: null
+            };
+        }
+
+        const payload = {
+            source: "api",
+            companyId,
+            fetchedAt: Date.now(),
+            monthly,
+            accumulated
+        };
+
+        savePeruServerCertification(payload);
+        return payload;
+    }
+
     // ============================================
     // API DE TRUCKY
     // ============================================
@@ -805,6 +941,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         getCachedCompanyData,
         loadWorkersPreview,
         loadCompanyData,
+        loadPeruServerCertification,
         fetchUserTotalDistanceKm,
         enrichMembersWithTotalDistance,
         normalizeMembers,
