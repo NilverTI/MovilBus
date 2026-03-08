@@ -1062,7 +1062,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     // ============================================
-    // INICIALIZACIÃƒâ€œN
+    // INICIALIZACIÓN
     // ============================================
 
     async function init() {
