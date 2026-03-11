@@ -174,7 +174,7 @@
                         }
                     }
 
-                    const raw = window.localStorage.getItem("movilbus:company-data:v3");
+                    const raw = window.localStorage.getItem("movilbus:company-data:v4");
                     if (!raw) return;
 
                     const stored = JSON.parse(raw);
@@ -195,11 +195,9 @@
                         .replace(/[\u0300-\u036f]/g, "")
                         .toLowerCase();
                     const format = new Intl.NumberFormat("es-PE");
-                    const totalKm = toNumber(payload.companyTotals && payload.companyTotals.totalDistance)
-                        || members.reduce((sum, member) => sum + toNumber(member.totalKm), 0);
+                    const totalKm = toNumber(payload.companyTotals && payload.companyTotals.totalDistance) || 0;
                     const totalDrivers = members.filter((member) => !normalize(member.role).includes("owner")).length;
-                    const completedRoutes = toNumber(payload.companyTotals && payload.companyTotals.totalJobs)
-                        || jobs.filter((job) => normalize(job.status) === "completed").length;
+                    const completedRoutes = toNumber(payload.companyTotals && payload.companyTotals.totalJobs) || 0;
                     const activeJobsSource = recentJobs.length > 0 ? recentJobs : jobs;
                     const activeJobsCount = activeJobsSource.filter((job) => {
                         const status = normalize(job.status);

@@ -46,7 +46,8 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         monthKmByDriver: new Map(),
         assignedRouteByDriver: new Map(),
         routes: [],
-        peruServerCertification: null
+        peruServerCertification: null,
+        statsRange: null
     };
 
     let syncInFlight = false;
@@ -182,6 +183,48 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         return result;
     }
 
+    function getDateKeyInLima(isoString) {
+        if (!isoString) return "";
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return "";
+
+        const parts = new Intl.DateTimeFormat("en-CA", {
+            timeZone: AppUtils.LIMA_TIME_ZONE,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        }).formatToParts(date);
+
+        const map = {};
+        parts.forEach((part) => {
+            map[part.type] = part.value;
+        });
+
+        return `${map.year}-${map.month}-${map.day}`;
+    }
+
+    function aggregateJobsInRange(jobs, range) {
+        if (!Array.isArray(jobs) || !range) {
+            return { totalDistance: 0, totalJobs: 0 };
+        }
+
+        let totalDistance = 0;
+        let totalJobs = 0;
+
+        jobs.forEach((job) => {
+            if (job.status !== "completed") return;
+            const reference = job.completedAt || job.updatedAt || job.startedAt;
+            const dateKey = getDateKeyInLima(reference);
+            if (!dateKey) return;
+            if (dateKey < range.dateFrom || dateKey > range.dateTo) return;
+
+            totalJobs += 1;
+            totalDistance += job.drivenKm || job.plannedKm || 0;
+        });
+
+        return { totalDistance, totalJobs };
+    }
+
     function isOwnerMember(member) {
         return AppUtils.normalizeText(member?.role || "").includes("owner");
     }
@@ -193,11 +236,10 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     }
 
     function renderStats() {
-        const membersTotalKm = state.members.reduce((sum, member) => sum + getMemberDisplayDistance(member), 0);
-        const totalKmRaw = AppUtils.toNumber(state.companyTotals?.totalDistance) || membersTotalKm;
+        const fallbackTotals = aggregateJobsInRange(state.jobs, state.statsRange?.year);
+        const totalKmRaw = AppUtils.toNumber(state.companyTotals?.totalDistance) || fallbackTotals.totalDistance;
         const totalKm = Math.max(0, Math.floor(totalKmRaw));
-        const completedRoutes = AppUtils.toNumber(state.companyTotals?.totalJobs)
-            || state.jobs.filter((job) => job.status === "completed").length;
+        const completedRoutes = AppUtils.toNumber(state.companyTotals?.totalJobs) || fallbackTotals.totalJobs;
         const totalDrivers = state.members.filter((member) => !isOwnerMember(member)).length;
         const activeJobsCount = state.recentDriverRoutes.length;
 
@@ -892,6 +934,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         state.members = Array.isArray(payload.members) ? payload.members : [];
         state.jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
         state.companyTotals = payload.companyTotals || null;
+        state.statsRange = payload.statsRange || null;
 
         // Map member names to IDs for job association
         const memberByName = new Map(state.members.map((member) => [AppUtils.normalizeText(member.name), member.id]));
@@ -919,7 +962,11 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             RoutesModule.LAST_ROUTE_WINDOW_HOURS
         );
 
-        state.monthKmByDriver = getMonthKmByDriver(state.jobs);
+        if (Array.isArray(payload.monthKmByDriver)) {
+            state.monthKmByDriver = new Map(payload.monthKmByDriver);
+        } else {
+            state.monthKmByDriver = getMonthKmByDriver(state.jobs);
+        }
         state.assignedRouteByDriver = RoutesModule.getAssignedRouteByDriver(state.jobs, state.recentDriverRoutes);
         state.routes = RoutesModule.buildRouteTrips(state.recentDriverRoutes);
 
@@ -942,6 +989,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
         state.monthKmByDriver = new Map();
         state.assignedRouteByDriver = new Map();
         state.routes = [];
+        state.statsRange = null;
 
         WorkersModule.setState(state);
         WorkersModule.renderWorkers();
