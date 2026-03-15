@@ -1,0 +1,22 @@
+{
+  "name": "movilbus-universal-proxy",
+  "version": "1.0.0",
+  "description": "Proxy universal para MovilBus - Funciona en VPS, Local y Netlify",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "movilbus",
+    "proxy",
+    "trucky",
+    "ets2"
+  ],
+  "author": "NILVER T.I",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}

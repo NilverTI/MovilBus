@@ -1,20 +1,12 @@
 {
-  "name": "movilbus-universal-proxy",
+  "name": "movilbus-app",
   "version": "1.0.0",
-  "description": "Proxy universal para MovilBus - Funciona en VPS, Local y Netlify",
-  "main": "server.js",
+  "description": "Sistema de gestión MovilBus PeruServer",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "proxy": "node proxy/server.js",
+    "dev": "node --watch proxy/server.js"
   },
-  "keywords": [
-    "movilbus",
-    "proxy",
-    "trucky",
-    "ets2"
-  ],
-  "author": "NILVER T.I",
-  "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2"

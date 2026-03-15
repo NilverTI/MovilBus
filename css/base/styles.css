@@ -10,6 +10,6 @@
 */
 
 @import url("./variables.css?v=10");
-@import url("./layout.css?v=10");
-@import url("./components.css?v=10");
+@import url("../layout/layout.css?v=10");
+@import url("../components/components.css?v=10");
 @import url("./animations.css?v=10");
