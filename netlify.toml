@@ -1,12 +1,20 @@
+[build]
+functions = "netlify/functions"
+
+[[headers]]
+for = "/*"
+[headers.values]
+Access-Control-Allow-Origin = "*"
+
 [[redirects]]
   from = "/api/trucky/*"
-  to = "https://e.truckyapp.com/api/v1/company/41407/:splat"
+  to = "/.netlify/functions/trucky/api/v1/company/41407/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/trucky-user/*"
-  to = "https://e.truckyapp.com/:splat"
+  to = "/.netlify/functions/trucky/:splat"
   status = 200
   force = true
 

@@ -160,6 +160,12 @@ window.AppApi = ((AppUtils) => {
 
             allRows.push(...AppUtils.getDataArray(payload));
             nextUrl = payload?.next_page_url || null;
+
+            if (nextUrl && !IS_LOCAL) {
+                // Forzar el uso del proxy en Netlify para las paginaciones también
+                nextUrl = nextUrl.replace("https://e.truckyapp.com/api/v1/company/41407", "/api/trucky");
+                nextUrl = nextUrl.replace("https://e.truckyapp.com", "/api/trucky-user");
+            }
         }
 
         return {

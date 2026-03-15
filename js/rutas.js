@@ -249,7 +249,7 @@ window.RoutesModule = ((AppUtils) => {
      */
     async function fetchRoutePolyline(originPos, destinationPos) {
         if (!originPos || !destinationPos) return null;
-        
+
         // Define un hash único para las coordenadas
         const routeHash = `${originPos.lat},${originPos.lng}_${destinationPos.lat},${destinationPos.lng}`;
         const cacheKey = OSRM_CACHE_PREFIX + routeHash;
@@ -270,10 +270,10 @@ window.RoutesModule = ((AppUtils) => {
             const response = await fetch(url);
             if (!response.ok) return null;
             const data = await response.json();
-            
+
             if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
                 const geometry = data.routes[0].geometry; // GeoJSON LineString
-                
+
                 // Guardar en la caché para siempre evitar llamar al API pública nuevamente
                 try {
                     if (typeof window !== "undefined" && window.localStorage) {
@@ -283,7 +283,7 @@ window.RoutesModule = ((AppUtils) => {
                     // Ignorar errores de quota superada
                 }
 
-                return geometry; 
+                return geometry;
             }
         } catch (e) {
             console.error("No se pudo obtener la ruta OSRM:", e);
