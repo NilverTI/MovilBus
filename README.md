@@ -2,7 +2,7 @@
 
 Sitio web de MovilBus para la comunidad de Euro Truck Simulator 2 (PeruServer), construido con HTML, CSS y JavaScript vanilla.
 
-![Vista principal MovilBus](assets/github/Home.jpeg)
+![Vista principal MovilBus](assets/img/github/Home.jpeg)
 
 ## Demo en vivo
 

@@ -611,22 +611,21 @@ window.RoutesModule = ((AppUtils) => {
                 });
 
                 const busSvg = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="12" rx="2" fill="${routeColor}" stroke="rgba(0,0,0,0.3)" />
-                    <rect x="5" y="6" width="4" height="4" rx="1" fill="rgba(255,255,255,0.8)" />
-                    <rect x="10" y="6" width="4" height="4" rx="1" fill="rgba(255,255,255,0.8)" />
-                    <rect x="15" y="6" width="4" height="4" rx="1" fill="rgba(255,255,255,0.8)" />
-                    <circle cx="7" cy="18" r="2" fill="#1e293b" stroke="white" stroke-width="2" />
-                    <circle cx="17" cy="18" r="2" fill="#1e293b" stroke="white" stroke-width="2" />
-                    <path d="M3 11h18" stroke="rgba(0,0,0,0.2)" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="12" rx="2" fill="${routeColor}" />
+                    <rect x="5" y="6" width="3" height="3" rx="0.5" fill="rgba(255,255,255,0.7)" />
+                    <rect x="10.5" y="6" width="3" height="3" rx="0.5" fill="rgba(255,255,255,0.7)" />
+                    <rect x="16" y="6" width="3" height="3" rx="0.5" fill="rgba(255,255,255,0.7)" />
+                    <circle cx="7" cy="18" r="2.5" fill="#0f172a" />
+                    <circle cx="17" cy="18" r="2.5" fill="#0f172a" />
                 </svg>`;
 
                 const destMarker = L.marker([destinationPos.lat, destinationPos.lng], {
                     icon: L.divIcon({
-                        html: `<div class="bus-marker-wrapper" style="background-color: #1e293b; padding: 5px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); border: 2.5px solid ${routeColor}; display: flex; align-items: center; justify-content: center; transform: scale(1.1); transition: all 0.3s ease;">${busSvg}</div>`,
+                        html: `<div class="bus-marker-wrapper" style="display: flex; align-items: center; justify-content: center; transform: scale(1.3); transition: all 0.3s ease; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${busSvg}</div>`,
                         className: '',
-                        iconSize: [42, 42],
-                        iconAnchor: [21, 21]
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
                     })
                 });
 

@@ -98,17 +98,23 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    background: linear-gradient(90deg, var(--orange), var(--orange-strong));
+    gap: 10px;
+    background: linear-gradient(135deg, var(--orange), var(--orange-strong));
     color: #fff;
+    font-family: var(--font-heading);
     font-weight: 700;
-    letter-spacing: 0.02em;
-    padding: 12px 24px;
-    border-radius: 12px;
+    padding: 14px 28px;
+    border-radius: 14px;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-    box-shadow: 0 10px 24px rgba(255, 106, 0, 0.28);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 20px rgba(255, 106, 0, 0.2);
     font-size: 1rem;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(255, 106, 0, 0.3);
+    opacity: 0.95;
 }
 
 .btn-secondary {
@@ -116,47 +122,43 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 24px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 14px 28px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
     color: #fff;
     font-size: 1rem;
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.06);
-    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.6);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-}
-
-.stat-card {
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    padding: 2px 4px;
-    text-align: center;
-}
-
-.stat-card p {
-    margin: 4px 0 0;
-    color: var(--muted);
-    font-size: 0.8rem;
-    font-weight: 500;
+    transform: translateY(-3px);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.8);
 }
 
 .stat-card h3 {
     margin: 0;
     color: var(--orange);
-    font-size: clamp(1.35rem, 1.8vw, 1.85rem);
+    font-family: var(--font-heading);
+    font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+    font-weight: 800;
     line-height: 1;
+}
+
+.stat-card p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
 }
 
 .data-status {
