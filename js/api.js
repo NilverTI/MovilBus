@@ -181,6 +181,7 @@ window.AppApi = ((AppUtils) => {
     // ============================================
 
     return {
+        IS_LOCAL,
         API_BASE,
         MDCDEV_BASE,
         OSRM_BASE,

@@ -453,9 +453,11 @@ window.TruckyService = ((AppUtils, AppApi) => {
     }
 
     function getApiOrigin() {
-        const value = String(AppApi.API_BASE || "");
-        const match = value.match(/^(https?:\/\/[^/]+)/i);
-        return match?.[1] || "https://e.truckyapp.com";
+        // En producción usamos el proxy de Netlify para los endpoints de usuario
+        // En local llamamos directamente a truckyapp.com
+        return AppApi.IS_LOCAL
+            ? "https://e.truckyapp.com"
+            : "/api/trucky-user";
     }
 
     function buildUserJobsEndpoint(userId, page = 1) {

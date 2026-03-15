@@ -4,19 +4,17 @@
   status = 200
   force = true
 
-  [redirects.headers]
-    X-From = "MovilBus"
-    Accept = "application/json"
-
 [[redirects]]
-  from = "/api/mdcdev/*"
-  to = "https://peruserver.de"
+  from = "/api/trucky-user/*"
+  to = "https://e.truckyapp.com/:splat"
   status = 200
   force = true
 
-  [redirects.headers]
-    X-From = "MovilBus"
-    Accept = "application/json"
+[[redirects]]
+  from = "/api/mdcdev/*"
+  to = "https://api.mdcdev.me/v2/peruserver/trucky/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/api/osrm/*"
