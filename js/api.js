@@ -23,21 +23,24 @@ window.AppApi = ((AppUtils) => {
         window.location.hostname === "127.0.0.1"
     );
 
-    // En producción usamos el proxy de Netlify para esquivar CORS
-    // En local apuntamos directo a la API (o podemos usar el proxy si corremos netlify dev)
+    // Base del Proxy: Prioriza Netlify si el dominio termina en .netlify.app
+    const PROXY_BASE = (typeof window !== "undefined" && window.location.hostname.includes("netlify.app"))
+        ? "/.netlify/functions/trucky"
+        : "/proxy"; // Path por defecto para el servidor Node.js (Express)
+
     const API_BASE = IS_LOCAL
         ? "https://e.truckyapp.com/api/v1/company/41407"
-        : "/.netlify/functions/trucky/api/v1/company/41407";
+        : `${PROXY_BASE}/api/v1/company/41407`;
 
     // URL base para llamadas a api.mdcdev.me (PeruServer)
     const MDCDEV_BASE = IS_LOCAL
         ? "https://api.mdcdev.me/v2/peruserver/trucky"
-        : "/api/mdcdev";
+        : `${PROXY_BASE.replace("trucky", "mdcdev")}`; // Netlify maneja mdcdev por separado? O usamos el mismo?
 
     // URL base para OSRM (utilizada en rutas)
     const OSRM_BASE = IS_LOCAL
         ? "https://router.project-osrm.org/route/v1/driving"
-        : "/api/osrm";
+        : "/api/osrm"; // Esto suele configurarse en netlify.toml, por ahora mantenemos compatibilidad.
 
     const MAX_JOB_PAGES = 3;
     const RECENT_ROUTES_ENDPOINT = "/jobs?top=0&page=1&perPage=100&status=in_progress&sortingField=updated_at&sortingDirection=desc";
@@ -162,9 +165,9 @@ window.AppApi = ((AppUtils) => {
             nextUrl = payload?.next_page_url || null;
 
             if (nextUrl && !IS_LOCAL) {
-                // Forzar el uso del proxy en Netlify para las paginaciones también
-                nextUrl = nextUrl.replace("https://e.truckyapp.com/api/v1/company/41407", "/.netlify/functions/trucky/api/v1/company/41407");
-                nextUrl = nextUrl.replace("https://e.truckyapp.com", "/.netlify/functions/trucky");
+                // Forzar el uso del proxy para las paginaciones también (Universal)
+                nextUrl = nextUrl.replace("https://e.truckyapp.com/api/v1/company/41407", `${PROXY_BASE}/api/v1/company/41407`);
+                nextUrl = nextUrl.replace("https://e.truckyapp.com", PROXY_BASE);
             }
         }
 
