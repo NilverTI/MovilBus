@@ -1,0 +1,25 @@
+[[redirects]]
+  from = "/api/trucky/*"
+  to = "https://e.truckyapp.com/api/v1/company/41407/:splat"
+  status = 200
+  force = true
+
+  [redirects.headers]
+    X-From = "MovilBus"
+    Accept = "application/json"
+
+[[redirects]]
+  from = "/api/mdcdev/*"
+  to = "https://peruserver.de"
+  status = 200
+  force = true
+
+  [redirects.headers]
+    X-From = "MovilBus"
+    Accept = "application/json"
+
+[[redirects]]
+  from = "/api/osrm/*"
+  to = "https://router.project-osrm.org/route/v1/driving/:splat"
+  status = 200
+  force = true

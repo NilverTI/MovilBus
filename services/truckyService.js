@@ -38,7 +38,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
     const PERUSERVER_TOP_CACHE_KEY = "movilbus:peruserver-top:v1";
     const PERUSERVER_TOP_CACHE_MS = 10 * 60 * 1000;
     const PERUSERVER_TOP_TIMEOUT_MS = 9000;
-    const PERUSERVER_TOP_MONTHLY_URL = "https://api.mdcdev.me/v2/peruserver/trucky/top-km/monthly?limit=50";
+    const PERUSERVER_TOP_MONTHLY_URL = `${AppApi.MDCDEV_BASE}/top-km/monthly?limit=50`;
 
     const PLACEHOLDER_AVATAR_SIGNATURES = [
         "fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb",
@@ -870,7 +870,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
 
     function buildPeruServerAccumulatedUrl(year = new Date().getFullYear()) {
         const safeYear = Math.max(2020, AppUtils.toNumber(year) || new Date().getFullYear());
-        return `https://api.mdcdev.me/v2/peruserver/trucky/top-km?month=1&year=${safeYear}&limit=50`;
+        return `${AppApi.MDCDEV_BASE}/top-km?month=1&year=${safeYear}&limit=50`;
     }
 
     function getCachedPeruServerCertification() {

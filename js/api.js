@@ -1,4 +1,4 @@
-﻿/* 
+/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -17,7 +17,28 @@ window.AppApi = ((AppUtils) => {
     // ============================================
     // CONSTANTES
     // ============================================
-    const API_BASE = "https://e.truckyapp.com/api/v1/company/41407";
+    // Detectar si estamos en producción (Netlify) o en local
+    const IS_LOCAL = typeof window !== "undefined" && (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1"
+    );
+
+    // En producción usamos el proxy de Netlify para esquivar CORS
+    // En local apuntamos directo a la API
+    const API_BASE = IS_LOCAL
+        ? "https://e.truckyapp.com/api/v1/company/41407"
+        : "/api/trucky";
+
+    // URL base para llamadas a api.mdcdev.me (PeruServer)
+    const MDCDEV_BASE = IS_LOCAL
+        ? "https://api.mdcdev.me/v2/peruserver/trucky"
+        : "/api/mdcdev";
+
+    // URL base para OSRM (utilizada en rutas)
+    const OSRM_BASE = IS_LOCAL
+        ? "https://router.project-osrm.org/route/v1/driving"
+        : "/api/osrm";
+
     const MAX_JOB_PAGES = 3;
     const RECENT_ROUTES_ENDPOINT = "/jobs?top=0&page=1&perPage=100&status=in_progress&sortingField=updated_at&sortingDirection=desc";
     const DEFAULT_TIMEOUT_MS = 12000;
@@ -161,6 +182,8 @@ window.AppApi = ((AppUtils) => {
 
     return {
         API_BASE,
+        MDCDEV_BASE,
+        OSRM_BASE,
         MAX_JOB_PAGES,
         RECENT_ROUTES_ENDPOINT,
         TRUCKY_HEADERS,

@@ -266,7 +266,7 @@ window.RoutesModule = ((AppUtils) => {
 
         try {
             // OSRM format: lng,lat;lng,lat
-            const url = `https://router.project-osrm.org/route/v1/driving/${originPos.lng},${originPos.lat};${destinationPos.lng},${destinationPos.lat}?overview=full&geometries=geojson`;
+            const url = `${window.AppApi.OSRM_BASE}/${originPos.lng},${originPos.lat};${destinationPos.lng},${destinationPos.lat}?overview=full&geometries=geojson`;
             const response = await fetch(url);
             if (!response.ok) return null;
             const data = await response.json();
