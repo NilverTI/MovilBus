@@ -1,4 +1,4 @@
-﻿/* 
+/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -49,11 +49,12 @@ window.TruckyService = ((AppUtils, AppApi) => {
     // DATOS FALLBACK
     // ============================================
     const FALLBACK_MEMBERS = [
-        { id: 1, name: "Nilver TI", role: { name: "Conductor" }, level: 14, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
-        { id: 2, name: "Jeap Rutero", role: { name: "Conductor" }, level: 10, total_driven_distance_km: 45110, avatar_url: DEFAULT_AVATAR },
-        { id: 3, name: "CarlManu", role: { name: "Conductor" }, level: 8, total_driven_distance_km: 31980, avatar_url: DEFAULT_AVATAR },
-        { id: 4, name: "Jefferson", role: { name: "Administrador" }, level: 16, total_driven_distance_km: 51740, avatar_url: DEFAULT_AVATAR },
-        { id: 5, name: "Sahur", role: { name: "Conductor" }, level: 7, total_driven_distance_km: 26770, avatar_url: DEFAULT_AVATAR }
+        { id: 1, name: "Nilver TI", role: { name: "Administrador" }, level: 14, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
+        { id: 2, name: "User 1", role: { name: "Conductor" }, level: 10, total_driven_distance_km: 45110, avatar_url: DEFAULT_AVATAR },
+        { id: 3, name: "User 2", role: { name: "Conductor" }, level: 8, total_driven_distance_km: 31980, avatar_url: DEFAULT_AVATAR },
+        { id: 4, name: "User 3", role: { name: "Conductor" }, level: 16, total_driven_distance_km: 51740, avatar_url: DEFAULT_AVATAR },
+        { id: 5, name: "User 4", role: { name: "Conductor" }, level: 7, total_driven_distance_km: 26770, avatar_url: DEFAULT_AVATAR },
+        { id: 6, name: "User 5", role: { name: "Conductor" }, level: 14, total_driven_distance_km: 48210, avatar_url: DEFAULT_AVATAR },
     ];
 
     const FALLBACK_JOBS = [
@@ -64,31 +65,31 @@ window.TruckyService = ((AppUtils, AppApi) => {
             completed_at: AppUtils.daysAgoIso(1), started_at: AppUtils.daysAgoIso(1)
         },
         {
-            id: 1002, user_id: 2, driver: { id: 2, name: "Jeap Rutero" },
+            id: 1002, user_id: 2, driver: { id: 2, name: "User 1" },
             source_city_name: "Cusco", destination_city_name: "Puno",
             status: "in_progress", planned_distance_km: 390, driven_distance_km: 188,
             started_at: AppUtils.daysAgoIso(0)
         },
         {
-            id: 1003, user_id: 3, driver: { id: 3, name: "CarlManu" },
+            id: 1003, user_id: 3, driver: { id: 3, name: "User 2" },
             source_city_name: "Trujillo", destination_city_name: "Lima",
             status: "completed", planned_distance_km: 560, driven_distance_km: 554,
             completed_at: AppUtils.daysAgoIso(3), started_at: AppUtils.daysAgoIso(3)
         },
         {
-            id: 1004, user_id: 4, driver: { id: 4, name: "Jefferson" },
+            id: 1004, user_id: 4, driver: { id: 4, name: "User 3" },
             source_city_name: "Huancayo", destination_city_name: "Cusco",
             status: "completed", planned_distance_km: 760, driven_distance_km: 748,
             completed_at: AppUtils.daysAgoIso(6), started_at: AppUtils.daysAgoIso(6)
         },
         {
-            id: 1005, user_id: 5, driver: { id: 5, name: "Sahur" },
+            id: 1005, user_id: 5, driver: { id: 5, name: "User 4" },
             source_city_name: "Lima", destination_city_name: "Ica",
             status: "in_progress", planned_distance_km: 305, driven_distance_km: 121,
             started_at: AppUtils.daysAgoIso(0)
         },
         {
-            id: 1006, user_id: 1, driver: { id: 1, name: "Nilver TI" },
+            id: 1006, user_id: 1, driver: { id: 1, name: "User 5" },
             source_city_name: "Arequipa", destination_city_name: "Puno",
             status: "completed", planned_distance_km: 300, driven_distance_km: 294,
             completed_at: AppUtils.daysAgoIso(10), started_at: AppUtils.daysAgoIso(10)
@@ -167,9 +168,11 @@ window.TruckyService = ((AppUtils, AppApi) => {
             const totalKm = AppUtils.toNumber(value.totalKm);
             const cachedAt = AppUtils.toNumber(value.cachedAt);
             const updatedAtRef = String(value.updatedAtRef || "");
+            const monthKm = value.monthKm;
+            const jobs = value.jobs;
             if (!userId || cachedAt <= 0) return;
 
-            userTotalsCache.set(String(userId), { totalKm, cachedAt, updatedAtRef });
+            userTotalsCache.set(String(userId), { totalKm, cachedAt, updatedAtRef, monthKm, jobs });
         });
     }
 
@@ -260,7 +263,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const members = Array.isArray(payload.members) ? payload.members : [];
         const jobs = Array.isArray(payload.jobs) ? payload.jobs : [];
         const recentJobs = Array.isArray(payload.recentJobs) ? payload.recentJobs : [];
-        
+
         if (members.length === 0 || jobs.length === 0) return null;
 
         return {
@@ -692,13 +695,53 @@ window.TruckyService = ((AppUtils, AppApi) => {
         persistUserTotalsCache();
     }
 
-    function sumJobsDistance(rows) {
-        if (!Array.isArray(rows) || rows.length === 0) return 0;
-        return rows.reduce((sum, row) => {
+    function calculateJobStats(rows, currentYear, currentMonth) {
+        if (!Array.isArray(rows) || rows.length === 0) return { totalKm: 0, monthKm: 0, hasOlderJobs: false, jobs: [] };
+        let totalKm = 0;
+        let monthKm = 0;
+        let hasOlderJobs = false;
+        const validJobs = [];
+
+        for (const row of rows) {
             const status = AppUtils.normalizeText(row?.status || "");
-            if (status && status !== "completed") return sum;
-            return sum + AppUtils.toNumber(row.driven_distance_km ?? row.driven_distance);
-        }, 0);
+            if (status && status !== "completed") continue;
+
+            const completedAt = row?.completed_at || row?.updated_at || row?.started_at;
+            if (!completedAt) continue;
+
+            const date = new Date(completedAt);
+            if (Number.isNaN(date.getTime())) continue;
+
+            // Cutoff: Jan 1, 2026
+            if (date.getFullYear() < 2026) {
+                hasOlderJobs = true;
+                continue; // We skip older jobs, but since it's sorted desc, we could technically break, but continuing is safer.
+            }
+
+            const distance = AppUtils.toNumber(row.driven_distance_km ?? row.driven_distance);
+            totalKm += distance;
+
+            if (date.getFullYear() === currentYear && date.getMonth() + 1 === currentMonth) {
+                monthKm += distance;
+            }
+
+            validJobs.push(row);
+        }
+
+        // Let's refine hasOlderJobs checking because we paginate desc by updated_at usually.
+        // If the last item in the array is before 2026, we definitely hit the cutoff.
+        const lastRow = rows[rows.length - 1];
+        if (lastRow) {
+            const lastCompletedAt = lastRow.completed_at || lastRow.updated_at || lastRow.started_at;
+            if (lastCompletedAt) {
+                const lastDate = new Date(lastCompletedAt);
+                if (!Number.isNaN(lastDate.getTime()) && lastDate.getFullYear() < 2026) {
+                    hasOlderJobs = true;
+                }
+            }
+        }
+
+        return { totalKm, monthKm, hasOlderJobs, jobs: validJobs };
     }
 
     async function fetchUserTotalDistanceFromProfile(userId) {
@@ -717,41 +760,64 @@ window.TruckyService = ((AppUtils, AppApi) => {
         }
     }
 
-    async function fetchUserTotalDistanceKm(userId, updatedAtRef = "") {
+    async function fetchUserStatsKm(userId, updatedAtRef = "") {
         const safeUserId = AppUtils.toNumber(userId);
-        if (safeUserId <= 0) return 0;
+        if (safeUserId <= 0) return { totalKm: 0, monthKm: 0, jobs: [] };
         const cacheKey = String(safeUserId);
         const safeUpdatedAtRef = String(updatedAtRef || "");
 
         const cached = getCachedUserTotalDistance(safeUserId, safeUpdatedAtRef);
-        if (cached) return cached.totalKm;
+        // We modified the cache value to store { totalKm, monthKm, jobs }
+        if (cached && cached.monthKm !== undefined) {
+            return { totalKm: cached.totalKm, monthKm: cached.monthKm, jobs: cached.jobs || [] };
+        }
 
         const existingRequest = userTotalsInFlight.get(cacheKey);
         if (existingRequest) return existingRequest;
 
         const request = (async () => {
             try {
-                const profileDistanceKm = await fetchUserTotalDistanceFromProfile(safeUserId);
-                if (profileDistanceKm > 0) {
-                    setCachedUserTotalDistance(safeUserId, profileDistanceKm, safeUpdatedAtRef);
-                    return profileDistanceKm;
-                }
+                let distanceTotalKm = 0;
+                let monthTotalKm = 0;
+                const userJobs = [];
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth() + 1; // 1-12
 
                 const pageOne = await fetchUserJobsPage(safeUserId, 1);
                 const totalPagesRaw = AppUtils.toNumber(pageOne?.last_page);
                 const totalPages = Math.max(1, Math.min(totalPagesRaw || 1, USER_JOBS_MAX_PAGES));
-                let distanceTotalKm = sumJobsDistance(AppUtils.getDataArray(pageOne));
 
-                for (let page = 2; page <= totalPages; page += 1) {
-                    const payload = await fetchUserJobsPage(safeUserId, page);
-                    distanceTotalKm += sumJobsDistance(AppUtils.getDataArray(payload));
+                let stats = calculateJobStats(AppUtils.getDataArray(pageOne), currentYear, currentMonth);
+                distanceTotalKm += stats.totalKm;
+                monthTotalKm += stats.monthKm;
+                userJobs.push(...stats.jobs);
+
+                if (!stats.hasOlderJobs) {
+                    for (let page = 2; page <= totalPages; page += 1) {
+                        const payload = await fetchUserJobsPage(safeUserId, page);
+                        stats = calculateJobStats(AppUtils.getDataArray(payload), currentYear, currentMonth);
+                        distanceTotalKm += stats.totalKm;
+                        monthTotalKm += stats.monthKm;
+                        userJobs.push(...stats.jobs);
+                        if (stats.hasOlderJobs) break;
+                    }
                 }
 
-                setCachedUserTotalDistance(safeUserId, distanceTotalKm, safeUpdatedAtRef);
-                return distanceTotalKm;
+                // Cache it
+                userTotalsCache.set(cacheKey, {
+                    totalKm: distanceTotalKm,
+                    monthKm: monthTotalKm,
+                    jobs: userJobs,
+                    cachedAt: Date.now(),
+                    updatedAtRef: safeUpdatedAtRef
+                });
+                persistUserTotalsCache();
+
+                return { totalKm: distanceTotalKm, monthKm: monthTotalKm, jobs: userJobs };
             } catch (error) {
-                console.warn(`No se pudo calcular distancia total para usuario ${safeUserId}:`, error);
-                return 0;
+                console.warn(`No se pudo calcular stats para usuario ${safeUserId}:`, error);
+                return { totalKm: 0, monthKm: 0, jobs: [] };
             } finally {
                 userTotalsInFlight.delete(cacheKey);
             }
@@ -778,10 +844,12 @@ window.TruckyService = ((AppUtils, AppApi) => {
                 if (userId <= 0) continue;
                 const updatedAtRef = String(member?.updatedAt || "");
 
-                const totalDistanceKm = await fetchUserTotalDistanceKm(userId, updatedAtRef);
+                const stats = await fetchUserStatsKm(userId, updatedAtRef);
                 enriched[currentIndex] = {
                     ...member,
-                    totalDistanceKm: totalDistanceKm > 0 ? totalDistanceKm : AppUtils.toNumber(member.totalKm)
+                    totalDistanceKm: stats.totalKm > 0 ? stats.totalKm : AppUtils.toNumber(member.totalKm),
+                    monthKmProfile: stats.monthKm,
+                    historyJobs: normalizeJobs(stats.jobs || [])
                 };
             }
         }
@@ -971,7 +1039,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const cacheKey = `${companyId}:${year}-${month}`;
         const now = Date.now();
         const cached = monthCache.get(cacheKey);
-        
+
         if (cached) {
             const cachedAt = AppUtils.toNumber(cached.cachedAt);
             const isCurrentMonthFresh = now - cachedAt <= CURRENT_MONTH_CACHE_MS;
@@ -1097,7 +1165,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const now = new Date();
         const monthRange = buildMonthToDateRange(now);
         const yearRange = buildYearToDateRange(now);
-        
+
         const membersPayloadPromise = withDeadline(AppApi.fetchEndpoint("/members"));
         const jobsPayloadPromise = withDeadline(AppApi.fetchEndpoint(FAST_JOBS_ENDPOINT));
         const recentJobsPayloadPromise = withDeadline(AppApi.fetchEndpoint(AppApi.RECENT_ROUTES_ENDPOINT));
@@ -1139,7 +1207,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const normalizedMembers = normalizeMembers(membersRaw);
         const normalizedJobs = normalizeJobs(jobsRaw);
         const normalizedRecentJobs = normalizeJobs(recentJobsRaw);
-        
+
         if (yearlyTotals) {
             saveCachedTotals(yearlyTotals);
         }
@@ -1238,7 +1306,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         loadWorkersPreview,
         loadCompanyData,
         loadPeruServerCertification,
-        fetchUserTotalDistanceKm,
+        fetchUserStatsKm,
         enrichMembersWithTotalDistance,
         normalizeMembers,
         normalizeJobs

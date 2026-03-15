@@ -1,4 +1,4 @@
-﻿/* 
+/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -9,7 +9,7 @@
   https://movilbuspsv.netlify.app/
 */
 
-@import url("./variables.css");
-@import url("./layout.css");
-@import url("./components.css");
-@import url("./animations.css");
+@import url("./variables.css?v=2");
+@import url("./layout.css?v=2");
+@import url("./components.css?v=2");
+@import url("./animations.css?v=2");

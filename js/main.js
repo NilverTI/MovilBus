@@ -1,4 +1,4 @@
-﻿/* 
+/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -539,7 +539,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function setupNavigation() {
         const navbar = document.querySelector(".navbar");
         if (!navbar) return;
-        
+
         const navToggle = document.getElementById("navToggle");
         const siteNav = document.getElementById("siteNav");
 
@@ -666,19 +666,19 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function setupParallax() {
         const hero = document.querySelector(".hero");
         if (!hero) return;
-        
+
         const carouselSlides = [...hero.querySelectorAll(".hero-carousel-slide")];
         const isSmallScreen = window.matchMedia("(max-width: 1100px)").matches;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        
+
         if (isSmallScreen || reducedMotion) return;
 
         let ticking = false;
-        
+
         const updateParallax = () => {
             const y = Math.min(window.scrollY * 0.12, 90);
             const position = `center calc(66% + ${y}px)`;
-            
+
             if (carouselSlides.length) {
                 carouselSlides.forEach((slide) => {
                     slide.style.backgroundPosition = position;
@@ -710,7 +710,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         if (!widget || !toggleButton || !toggleIcon || !volumeRange) return;
         if (widget.dataset.ready === "true") return;
-        
+
         widget.dataset.ready = "true";
 
         const radio = new Audio(RADIO_STREAM_URL);
@@ -776,7 +776,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
     function setupHeroCarousel() {
         const hero = document.querySelector(".hero");
         if (!hero || hero.dataset.carouselReady === "true") return;
-        
+
         hero.dataset.carouselReady = "true";
 
         const slideCandidates = [
@@ -784,7 +784,7 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             ["assets/img/Movil1.webp"],
             ["assets/img/Movil2.webp"],
             ["assets/img/Movil3.webp"],
-            //["assets/img/Movil4.webp"],
+            ["assets/img/Movil4.webp"],
             ["assets/img/Movil5.webp"],
         ];
 
@@ -810,11 +810,11 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
         const initialize = async () => {
             const resolvedSlides = await Promise.all(
-                slideCandidates.map((candidates, index) => 
+                slideCandidates.map((candidates, index) =>
                     preloadFirstAvailable(candidates, index === 0 ? "high" : "low")
                 )
             );
-            
+
             const slides = resolvedSlides.filter(Boolean);
             if (!slides.length) return;
 
@@ -889,13 +889,13 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
 
             let autoPlayId = 0;
             const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-            
+
             const stopAutoPlay = () => {
                 if (!autoPlayId) return;
                 window.clearInterval(autoPlayId);
                 autoPlayId = 0;
             };
-            
+
             const startAutoPlay = () => {
                 if (reducedMotion) return;
                 stopAutoPlay();
@@ -1008,6 +1008,13 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
                 if (!Array.isArray(membersWithTotals) || membersWithTotals.length === 0) return;
 
                 state.members = membersWithTotals;
+
+                membersWithTotals.forEach((member) => {
+                    if (member.monthKmProfile !== undefined) {
+                        state.monthKmByDriver.set(member.id, member.monthKmProfile);
+                    }
+                });
+
                 WorkersModule.setState(state);
                 WorkersModule.renderWorkers();
                 RankingModule.renderRankings(state);
@@ -1161,9 +1168,9 @@ window.AppMain = ((AppUtils, TruckyService, RoutesModule, WorkersModule, Ranking
             const livePayload = await livePayloadPromise;
             fullPayloadApplied = true;
             applyPayload(livePayload);
-            
+
             updateDataStatusFromPayload(livePayload, "Datos actualizados.", false);
-            
+
             bindTotalsRefresh(livePayload.totalsRefreshPromise);
             console.info(`Movil Bus sincronizado con datos: ${state.source}`);
         } catch (error) {

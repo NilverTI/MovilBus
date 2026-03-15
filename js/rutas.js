@@ -476,7 +476,7 @@ window.RoutesModule = ((AppUtils) => {
         frame.addEventListener("pointermove", onMapPointerMove);
         frame.addEventListener("pointerup", onMapPointerUp);
         frame.addEventListener("pointercancel", onMapPointerUp);
-        
+
         frame.addEventListener("dblclick", (event) => {
             const rect = frame.getBoundingClientRect();
             const anchor = {

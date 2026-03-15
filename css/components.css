@@ -1768,6 +1768,47 @@
     color: var(--muted);
 }
 
+.history-month-group {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.history-month-header {
+    background: rgba(255,106,0,0.06);
+    padding: 10px 14px;
+    border-radius: 8px;
+    border-left: 3px solid var(--orange);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    user-select: none;
+}
+
+.history-month-header:hover {
+    background: rgba(255,106,0,0.1);
+}
+
+.history-toggle-icon {
+    transition: transform 0.3s ease;
+    color: var(--orange-strong);
+}
+
+.history-month-group.open .history-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.history-month-jobs {
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+    display: none;
+    gap: 8px;
+}
+
+.history-month-group.open .history-month-jobs {
+    display: grid;
+}
+
 @media (max-width: 990px) {
     .nav-links {
         gap: 4px;

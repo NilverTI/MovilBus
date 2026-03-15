@@ -1,4 +1,4 @@
-﻿/* 
+/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -123,27 +123,101 @@ window.WorkersModule = ((AppUtils) => {
     }
 
     /**
-     * Genera las filas del historial
-     * @param {Array} jobs - Lista de trabajos
+     * Genera las filas del historial agrupadas por mes
+     * @param {Array} historyJobs - Trabajos pasados (historial) del usuario
+     * @param {Array} activeJobs - Trabajos en progreso actuales
      * @returns {string}
      */
-    function renderHistoryRows(jobs) {
-        const historyJobs = jobs.slice(0, 6);
+    function renderGroupedHistory(historyJobs, activeJobs) {
+        let html = "";
         
-        if (!historyJobs.length) {
-            return "<li>Sin historial disponible.</li>";
+        // 1. Mostrar trabajos en curso primero
+        if (activeJobs && activeJobs.length > 0) {
+            html += `<li class="history-month-group open">
+                        <div class="history-month-header">
+                            <strong style="color: var(--orange-strong);">Rutas en curso</strong>
+                        </div>
+                        <ul class="history-month-jobs" style="display: grid;">`;
+            html += activeJobs.map((job) => {
+                const km = job.drivenKm || job.plannedKm;
+                const date = AppUtils.formatDate(job.startedAt || new Date());
+                return `
+                    <li>
+                        <strong>${job.origin} - ${job.destination}</strong>
+                        <small>${date} | ${AppUtils.formatNumber(km)} km | <span class="trucky-level">En curso</span></small>
+                    </li>
+                `;
+            }).join("");
+            html += `   </ul>
+                     </li>`;
         }
+
+        if (!historyJobs || !historyJobs.length) {
+            if (!activeJobs || !activeJobs.length) {
+                return "<li>Sin historial disponible desde el 2026.</li>";
+            }
+            return html;
+        }
+
+        // 2. Agrupar historial por Año-Mes
+        const monthGroups = new Map(); // key -> { label, km, jobs }
         
-        return historyJobs.map((job) => {
-            const km = job.drivenKm || job.plannedKm;
-            const date = AppUtils.formatDate(job.completedAt || job.startedAt);
-            return `
-                <li>
-                    <strong>${job.origin} - ${job.destination}</strong>
-                    <small>${date} | ${AppUtils.formatNumber(km)} km | ${job.status}</small>
-                </li>
-            `;
-        }).join("");
+        historyJobs.forEach((job) => {
+            const dateStr = job.completedAt || job.updatedAt || job.startedAt;
+            if (!dateStr) return;
+            
+            const date = new Date(dateStr);
+            if (Number.isNaN(date.getTime())) return;
+            
+            const year = date.getFullYear();
+            const monthStr = date.toLocaleString("es-PE", { month: "long" });
+            const capitalizedMonth = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
+            const key = `${year}-${String(date.getMonth()).padStart(2, "0")}`; // Sortable key
+            const label = `${capitalizedMonth} ${year}`;
+            
+            if (!monthGroups.has(key)) {
+                monthGroups.set(key, { label, km: 0, jobs: [], sortKey: key });
+            }
+            
+            const group = monthGroups.get(key);
+            const distance = job.drivenKm || job.plannedKm || 0;
+            
+            group.km += distance;
+            group.jobs.push(job);
+        });
+
+        // 3. Ordenar grupos de forma descendente y generar HTML
+        const sortedGroups = Array.from(monthGroups.values()).sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+
+        sortedGroups.forEach((group) => {
+            html += `<li class="history-month-group">
+                        <div class="history-month-header" onclick="this.parentElement.classList.toggle('open')">
+                            <strong style="color: var(--orange-strong); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="display: flex; align-items: center; gap: 8px;">
+                                    <svg class="history-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                    ${group.label}
+                                </span>
+                                <span>${AppUtils.formatNumber(group.km)} km</span>
+                            </strong>
+                        </div>
+                        <ul class="history-month-jobs">`;
+                     
+            html += group.jobs.map((job) => {
+                const km = job.drivenKm || job.plannedKm;
+                const date = AppUtils.formatDate(job.completedAt || job.startedAt);
+                return `
+                    <li>
+                        <strong>${job.origin} - ${job.destination}</strong>
+                        <small>${date} | ${AppUtils.formatNumber(km)} km | ${job.status}</small>
+                    </li>
+                `;
+            }).join("");
+
+            html += `   </ul>
+                     </li>`;
+        });
+
+        return html;
     }
 
     // ============================================
@@ -163,9 +237,9 @@ window.WorkersModule = ((AppUtils) => {
         const member = appState.members.find((row) => row.id === memberId);
         if (!member) return;
 
-        const jobs = getWorkerJobs(memberId);
-        const completedJobs = getCompletedJobs(jobs);
-        const activeJobs = getActiveJobs(jobs);
+        const activeJobs = getActiveJobs(getWorkerJobs(memberId));
+        const historyJobs = member.historyJobs || []; // All exact jobs since 2026
+        const totalJobCount = historyJobs.length; // We use the exact count of completed valid jobs now
         const monthKm = appState.monthKmByDriver.get(memberId) || 0;
         const routeAssigned = appState.assignedRouteByDriver.get(memberId) || "No asignada";
         const roleClass = getRoleClass(member.role);
@@ -191,7 +265,7 @@ window.WorkersModule = ((AppUtils) => {
                 </article>
                 <article class="modal-metric">
                     <p>Viajes completados</p>
-                    <strong>${AppUtils.formatNumber(completedJobs.length)}</strong>
+                    <strong>${AppUtils.formatNumber(totalJobCount)}</strong>
                 </article>
                 <article class="modal-metric">
                     <p>Viajes activos</p>
@@ -199,7 +273,7 @@ window.WorkersModule = ((AppUtils) => {
                 </article>
                 <article class="modal-metric">
                     <p>Total de rutas</p>
-                    <strong>${AppUtils.formatNumber(jobs.length)}</strong>
+                    <strong>${AppUtils.formatNumber(totalJobCount + activeJobs.length)}</strong>
                 </article>
                 <article class="modal-metric">
                     <p>Nivel Trucky</p>
@@ -211,7 +285,7 @@ window.WorkersModule = ((AppUtils) => {
                 </article>
             </div>
             <ul class="history-list">
-                ${renderHistoryRows(jobs)}
+                ${renderGroupedHistory(historyJobs, activeJobs)}
             </ul>
         `;
 
