@@ -1733,16 +1733,26 @@
     }
 
     .route-trip-btn {
-        align-items: flex-start;
+        align-items: center;
+        padding: 12px;
     }
 
-    .route-item h4,
+    .route-item h4 {
+        white-space: normal;
+        line-height: 1.2;
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+    }
+
     .route-item p {
         white-space: normal;
+        line-height: 1.2;
+        font-size: 0.82rem;
     }
 
     .route-trip-km {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
+        margin-left: 8px;
     }
 
     .ranking-row {
@@ -1831,9 +1841,11 @@
 
     .radio-widget {
         top: auto;
-        bottom: 12px;
-        left: 10px;
-        width: 112px;
+        bottom: 16px;
+        right: 12px;
+        left: auto;
+        width: 100px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
 
     .radio-toggle-button {
@@ -2119,7 +2131,7 @@
     }
 
     .route-trip-km {
-        font-size: 1rem;
+        font-size: 1.05rem;
     }
 
     .ranking-row {
@@ -2316,5 +2328,52 @@
     .disclaimer-btn {
         padding: 12px 32px;
         font-size: 0.95rem;
+    }
+}
+
+/* Estilos para las ciudades en el listado de rutas */
+.route-trip-cities {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    line-height: 1.25;
+}
+
+.city-name {
+    font-weight: 700;
+}
+
+.city-arrow {
+    color: var(--orange);
+    font-weight: 800;
+    opacity: 0.8;
+}
+
+.route-trip-meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* Mejora para el indicador de rutas */
+#routeIndicator {
+    font-size: clamp(0.9rem, 1.1vw, 1.05rem);
+    line-height: 1.4;
+    color: #334155;
+}
+
+@media (max-width: 680px) {
+    .route-trip-cities {
+        gap: 4px;
+    }
+    
+    .city-arrow {
+        font-size: 0.9em;
+    }
+    
+    #routeIndicator {
+        font-size: 0.9rem;
     }
 }

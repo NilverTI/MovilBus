@@ -541,8 +541,12 @@ window.RoutesModule = ((AppUtils) => {
             item.className = "route-item route-trip-btn";
             item.innerHTML = `
                 <span class="route-trip-main">
-                    <h4>${route.origin} → ${route.destination}</h4>
-                    <p>${AppUtils.formatNumber(route.distanceKm)} km · Conductor: ${route.driverName}</p>
+                    <h4 class="route-trip-cities">
+                        <span class="city-name">${route.origin}</span>
+                        <span class="city-arrow">→</span>
+                        <span class="city-name">${route.destination}</span>
+                    </h4>
+                    <p class="route-trip-meta">${AppUtils.formatNumber(route.distanceKm)} km · Conductor: ${route.driverName}</p>
                 </span>
                 <span class="route-trip-km">${AppUtils.formatNumber(route.kmDriven)} km</span>
             `;
