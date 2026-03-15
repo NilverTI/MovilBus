@@ -1,4 +1,4 @@
-﻿/* 
+/* 
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -23,43 +23,43 @@ window.RoutesModule = ((AppUtils) => {
     const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
     // ============================================
-    // CONSTANTES - Posiciones de ciudades (%)
+    // CONSTANTES - Posiciones Reales (Lat, Lng)
     // ============================================
     const CITY_POSITIONS = {
-        lima: { x: 32, y: 64 },
-        la_victoria: { x: 32.8, y: 64.1 },
-        huachipa: { x: 35.3, y: 63.3 },
-        chosica: { x: 37.1, y: 62.8 },
-        corcona: { x: 38.3, y: 62.4 },
-        matucana: { x: 39.5, y: 61.7 },
-        ticlio: { x: 42.7, y: 60.1 },
-        morococha: { x: 42.1, y: 59.5 },
-        oroya: { x: 43.5, y: 58.8 },
-        huancayo: { x: 45, y: 61.3 },
-        tunan: { x: 46.3, y: 60.6 },
-        concepcion: { x: 45.8, y: 60.8 },
-        tarma: { x: 43.1, y: 57.2 },
-        carpapata: { x: 44.1, y: 57.8 },
-        junin: { x: 41.9, y: 56.6 },
-        carhuamayo: { x: 41.5, y: 55.7 },
-        huayre: { x: 40.8, y: 55 },
-        Cerro_de_pasco: { x: 40.1, y: 54.7 },
-        huanuco: { x: 40.7, y: 51.2 },
-        ambo: { x: 40, y: 50.3 },
-        la_merced: { x: 48.4, y: 58.6 },
-        san_ramon: { x: 49.2, y: 59.4 },
-        huacho: { x: 29.4, y: 58.8 },
-        huaraz: { x: 33.2, y: 47 },
-        san_luis: { x: 36.2, y: 52.2 },
-        cajacay: { x: 34.2, y: 50.4 },
-        trujillo: { x: 26, y: 39 },
-        chiclayo: { x: 25, y: 31 },
-        piura: { x: 23, y: 22 },
-        ayacucho: { x: 51, y: 67 },
-        ica: { x: 35, y: 72 },
-        arequipa: { x: 44, y: 84 },
-        cusco: { x: 56, y: 73 },
-        puno: { x: 62, y: 84 }
+        lima: { lat: -12.0464, lng: -77.0428 },
+        la_victoria: { lat: -12.0655, lng: -77.0211 },
+        huachipa: { lat: -12.0125, lng: -76.8994 },
+        chosica: { lat: -11.9402, lng: -76.7027 },
+        corcona: { lat: -11.8986, lng: -76.5416 },
+        matucana: { lat: -11.8447, lng: -76.3853 },
+        ticlio: { lat: -11.5975, lng: -76.1914 },
+        morococha: { lat: -11.5997, lng: -76.1408 },
+        oroya: { lat: -11.5175, lng: -75.8981 },
+        huancayo: { lat: -12.0651, lng: -75.2048 },
+        tunan: { lat: -11.9144, lng: -75.3121 },
+        concepcion: { lat: -11.9167, lng: -75.3167 },
+        tarma: { lat: -11.4189, lng: -75.6883 },
+        carpapata: { lat: -11.3556, lng: -75.5269 },
+        junin: { lat: -11.1667, lng: -75.9833 },
+        carhuamayo: { lat: -10.9167, lng: -76.0333 },
+        huayre: { lat: -10.8667, lng: -76.0667 },
+        cerro_de_pasco: { lat: -10.6675, lng: -76.2567 },
+        huanuco: { lat: -9.9294, lng: -76.2397 },
+        ambo: { lat: -10.1306, lng: -76.2047 },
+        la_merced: { lat: -11.0543, lng: -75.3284 },
+        san_ramon: { lat: -11.1219, lng: -75.3582 },
+        huacho: { lat: -11.1067, lng: -77.6050 },
+        huaraz: { lat: -9.5278, lng: -77.5278 },
+        san_luis: { lat: -9.0967, lng: -77.3278 },
+        cajacay: { lat: -10.1558, lng: -77.4422 },
+        trujillo: { lat: -8.1159, lng: -79.0287 },
+        chiclayo: { lat: -6.7714, lng: -79.8409 },
+        piura: { lat: -5.1945, lng: -80.6328 },
+        ayacucho: { lat: -13.1588, lng: -74.2239 },
+        ica: { lat: -14.0722, lng: -75.7286 },
+        arequipa: { lat: -16.4090, lng: -71.5375 },
+        cusco: { lat: -13.5226, lng: -71.9673 },
+        puno: { lat: -15.8402, lng: -70.0219 }
     };
 
     // ============================================
@@ -98,23 +98,18 @@ window.RoutesModule = ((AppUtils) => {
     };
 
     // ============================================
-    // ESTADO DEL MAPA
+    // ESTADO DEL MAPA LEAFLET
     // ============================================
-    const mapViewState = {
-        frame: null,
-        canvas: null,
-        zoomInBtn: null,
-        zoomOutBtn: null,
-        resetBtn: null,
-        scale: MAP_MIN_SCALE,
-        markerCompensation: 1,
-        offsetX: 0,
-        offsetY: 0,
-        dragging: false,
-        dragPointerId: null,
-        lastClientX: 0,
-        lastClientY: 0,
-        initialized: false
+    const mapState = {
+        mapInstance: null,
+        routeLayerGroup: null,
+        markerLayerGroup: null,
+        polylines: new Map(), // root route id -> L.polyline
+        colorPalette: [
+            "#ff6a00", "#ff4d4d", "#ffb84d", "#ffff4d", "#4dffff",
+            "#4d4dff", "#b84dff", "#ff4db8", "#ff9933", "#33cc33"
+        ],
+        paletteIndex: 0
     };
 
     // ============================================
@@ -240,260 +235,135 @@ window.RoutesModule = ((AppUtils) => {
     }
 
     /**
-     * Obtiene la posición de una ciudad
+     * Obtiene las coordenadas lat/lng reales de una ciudad
      */
     function getCityPosition(cityName, cityId) {
         const key = resolveCityKey(cityName, cityId);
         return key ? CITY_POSITIONS[key] : null;
     }
 
+    const OSRM_CACHE_PREFIX = "movilbus_osrm_";
+
     /**
-     * Calcula el punto medio entre dos posiciones
+     * Hace un fetch a OSRM para obtener la polilínea de la ruta
      */
-    function midpoint(posA, posB) {
-        if (!posA && !posB) return null;
-        if (!posA) return posB;
-        if (!posB) return posA;
-        return {
-            x: (posA.x + posB.x) / 2,
-            y: (posA.y + posB.y) / 2
-        };
+    async function fetchRoutePolyline(originPos, destinationPos) {
+        if (!originPos || !destinationPos) return null;
+        
+        // Define un hash único para las coordenadas
+        const routeHash = `${originPos.lat},${originPos.lng}_${destinationPos.lat},${destinationPos.lng}`;
+        const cacheKey = OSRM_CACHE_PREFIX + routeHash;
+
+        // Comprueba si ya tenemos esta ruta en localStorage (caché persistente permanente)
+        try {
+            if (typeof window !== "undefined" && window.localStorage) {
+                const cached = window.localStorage.getItem(cacheKey);
+                if (cached) return JSON.parse(cached);
+            }
+        } catch (e) {
+            console.warn("Error leyendo caché OSRM:", e);
+        }
+
+        try {
+            // OSRM format: lng,lat;lng,lat
+            const url = `https://router.project-osrm.org/route/v1/driving/${originPos.lng},${originPos.lat};${destinationPos.lng},${destinationPos.lat}?overview=full&geometries=geojson`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+            
+            if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
+                const geometry = data.routes[0].geometry; // GeoJSON LineString
+                
+                // Guardar en la caché para siempre evitar llamar al API pública nuevamente
+                try {
+                    if (typeof window !== "undefined" && window.localStorage) {
+                        window.localStorage.setItem(cacheKey, JSON.stringify(geometry));
+                    }
+                } catch (e) {
+                    // Ignorar errores de quota superada
+                }
+
+                return geometry; 
+            }
+        } catch (e) {
+            console.error("No se pudo obtener la ruta OSRM:", e);
+        }
+        return null; // Fallback to straight line if API fails
     }
 
     /**
-     * Limita un valor entre un mínimo y máximo
-     */
-    function clamp(value, min, max) {
-        return Math.min(max, Math.max(min, value));
-    }
-
-    /**
-     * Limita los offset del mapa
-     */
-    function clampMapOffsets() {
-        if (!mapViewState.frame) return;
-
-        const width = mapViewState.frame.clientWidth || 1;
-        const height = mapViewState.frame.clientHeight || 1;
-        const maxOffsetX = Math.max(0, width * mapViewState.scale - width);
-        const maxOffsetY = Math.max(0, height * mapViewState.scale - height);
-
-        mapViewState.offsetX = clamp(mapViewState.offsetX, -maxOffsetX, 0);
-        mapViewState.offsetY = clamp(mapViewState.offsetY, -maxOffsetY, 0);
-    }
-
-    /**
-     * Actualiza los controles del mapa
-     */
-    function updateMapControls() {
-        if (!mapViewState.zoomInBtn || !mapViewState.zoomOutBtn) return;
-        mapViewState.zoomInBtn.disabled = mapViewState.scale >= MAP_MAX_SCALE - 0.01;
-        mapViewState.zoomOutBtn.disabled = mapViewState.scale <= MAP_MIN_SCALE + 0.01;
-    }
-
-    /**
-     * Obtiene la compensación del marcador según la escala
-     */
-    function getMarkerCompensationByScale(scale) {
-        const finalSizeMultiplier = clamp(1.05 - (scale - 1) * 0.12, 0.68, 1.05);
-        return finalSizeMultiplier / Math.max(scale, 0.001);
-    }
-
-    /**
-     * Aplica la compensación de marcadores
-     */
-    function applyMarkerCompensation() {
-        const compensation = getMarkerCompensationByScale(mapViewState.scale);
-        mapViewState.markerCompensation = compensation;
-
-        document.querySelectorAll(".route-marker").forEach((marker) => {
-            marker.style.setProperty("--marker-compensation", compensation.toFixed(4));
-        });
-    }
-
-    /**
-     * Aplica la transformación del mapa
-     */
-    function applyMapTransform() {
-        if (!mapViewState.canvas) return;
-        clampMapOffsets();
-        mapViewState.canvas.style.transform = `translate(${mapViewState.offsetX}px, ${mapViewState.offsetY}px) scale(${mapViewState.scale})`;
-        applyMarkerCompensation();
-        updateMapControls();
-    }
-
-    /**
-     * Establece la escala del mapa
-     */
-    function setMapScale(nextScale, anchor = null) {
-        if (!mapViewState.frame) return;
-
-        const previousScale = mapViewState.scale;
-        const targetScale = clamp(nextScale, MAP_MIN_SCALE, MAP_MAX_SCALE);
-        if (Math.abs(targetScale - previousScale) < 0.0001) return;
-
-        const width = mapViewState.frame.clientWidth || 1;
-        const height = mapViewState.frame.clientHeight || 1;
-        const focusX = anchor?.x ?? width / 2;
-        const focusY = anchor?.y ?? height / 2;
-
-        const worldX = (focusX - mapViewState.offsetX) / previousScale;
-        const worldY = (focusY - mapViewState.offsetY) / previousScale;
-
-        mapViewState.scale = targetScale;
-        mapViewState.offsetX = focusX - worldX * targetScale;
-        mapViewState.offsetY = focusY - worldY * targetScale;
-        applyMapTransform();
-    }
-
-    /**
-     * Resetea la vista del mapa
+     * Resetea la vista del mapa a todo el Perú
      */
     function resetMapView() {
-        mapViewState.scale = MAP_MIN_SCALE;
-        mapViewState.offsetX = 0;
-        mapViewState.offsetY = 0;
-        applyMapTransform();
+        if (!mapState.mapInstance) return;
+        // Peru Bounds roughly:
+        mapState.mapInstance.flyToBounds([
+            [-18.3, -81.3], // South West
+            [-0.0, -68.6]   // North East
+        ], { duration: 1.5 });
     }
 
     /**
-     * Centra el mapa en una ruta
+     * Centra el mapa en una ruta específica o sus markers
      */
     function focusMapOnRoute(route) {
-        if (!mapViewState.frame || !route) return;
+        if (!mapState.mapInstance || !route) return;
 
+        const polyline = mapState.polylines.get(String(route.id));
+        if (polyline) {
+            mapState.mapInstance.flyToBounds(polyline.getBounds(), { padding: [40, 40], duration: 1 });
+            return;
+        }
+
+        // Si no hay polyline por alguna razón, usamos los puntos de origen/destino
         const originPos = getCityPosition(route.origin, route.originId);
         const destinationPos = getCityPosition(route.destination, route.destinationId);
-        const center = midpoint(originPos, destinationPos);
-        if (!center) return;
 
-        const spread = originPos && destinationPos
-            ? Math.max(Math.abs(originPos.x - destinationPos.x), Math.abs(originPos.y - destinationPos.y))
-            : 8;
-        const targetScale = clamp(3.2 - spread / 18, 1.75, 3.3);
-        const width = mapViewState.frame.clientWidth || 1;
-        const height = mapViewState.frame.clientHeight || 1;
-        const centerPx = {
-            x: (center.x / 100) * width,
-            y: (center.y / 100) * height
-        };
-
-        mapViewState.scale = targetScale;
-        mapViewState.offsetX = width / 2 - centerPx.x * targetScale;
-        mapViewState.offsetY = height / 2 - centerPx.y * targetScale;
-        applyMapTransform();
-    }
-
-    // ============================================
-    // EVENTOS DEL MAPA
-    // ============================================
-
-    /**
-     * Evento de rueda del mapa
-     */
-    function onMapWheel(event) {
-        if (!mapViewState.frame) return;
-        event.preventDefault();
-
-        const rect = mapViewState.frame.getBoundingClientRect();
-        const anchor = {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
-        const factor = event.deltaY < 0 ? 1.17 : 0.86;
-        setMapScale(mapViewState.scale * factor, anchor);
-    }
-
-    /**
-     * Evento de puntero hacia abajo
-     */
-    function onMapPointerDown(event) {
-        if (!mapViewState.frame || mapViewState.scale <= MAP_MIN_SCALE + 0.01) return;
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        if (event.target instanceof Element && event.target.closest(".route-marker")) return;
-
-        mapViewState.dragging = true;
-        mapViewState.dragPointerId = event.pointerId;
-        mapViewState.lastClientX = event.clientX;
-        mapViewState.lastClientY = event.clientY;
-        mapViewState.frame.classList.add("dragging");
-        mapViewState.frame.setPointerCapture(event.pointerId);
-    }
-
-    /**
-     * Evento de movimiento del puntero
-     */
-    function onMapPointerMove(event) {
-        if (!mapViewState.dragging || mapViewState.dragPointerId !== event.pointerId) return;
-
-        const dx = event.clientX - mapViewState.lastClientX;
-        const dy = event.clientY - mapViewState.lastClientY;
-        mapViewState.lastClientX = event.clientX;
-        mapViewState.lastClientY = event.clientY;
-        mapViewState.offsetX += dx;
-        mapViewState.offsetY += dy;
-        applyMapTransform();
-    }
-
-    /**
-     * Evento de puntero hacia arriba
-     */
-    function onMapPointerUp(event) {
-        if (!mapViewState.dragging || mapViewState.dragPointerId !== event.pointerId) return;
-        mapViewState.dragging = false;
-        mapViewState.dragPointerId = null;
-        mapViewState.frame?.classList.remove("dragging");
-        if (mapViewState.frame?.hasPointerCapture(event.pointerId)) {
-            mapViewState.frame.releasePointerCapture(event.pointerId);
+        if (originPos && destinationPos) {
+            const bounds = L.latLngBounds(
+                [originPos.lat, originPos.lng],
+                [destinationPos.lat, destinationPos.lng]
+            );
+            mapState.mapInstance.flyToBounds(bounds, { padding: [50, 50], duration: 1 });
         }
     }
 
     /**
-     * Inicializa la vista del mapa
+     * Inicializa la vista del mapa con Leaflet
      */
     function ensureMapView() {
-        const frame = document.getElementById("routeMapFrame");
         const canvas = document.getElementById("routeMapCanvas");
-        const zoomInBtn = document.getElementById("mapZoomIn");
-        const zoomOutBtn = document.getElementById("mapZoomOut");
-        const resetBtn = document.getElementById("mapResetView");
+        if (!canvas) return false;
 
-        if (!frame || !canvas) return false;
-
-        mapViewState.frame = frame;
-        mapViewState.canvas = canvas;
-        mapViewState.zoomInBtn = zoomInBtn;
-        mapViewState.zoomOutBtn = zoomOutBtn;
-        mapViewState.resetBtn = resetBtn;
-
-        if (mapViewState.initialized) {
-            applyMapTransform();
+        if (mapState.mapInstance) {
             return true;
         }
 
-        frame.addEventListener("wheel", onMapWheel, { passive: false });
-        frame.addEventListener("pointerdown", onMapPointerDown);
-        frame.addEventListener("pointermove", onMapPointerMove);
-        frame.addEventListener("pointerup", onMapPointerUp);
-        frame.addEventListener("pointercancel", onMapPointerUp);
+        // Esperar a que Leaflet este cargado
+        if (typeof L === 'undefined') {
+            console.warn("Leaflet aún no está cargado.");
+            return false;
+        }
 
-        frame.addEventListener("dblclick", (event) => {
-            const rect = frame.getBoundingClientRect();
-            const anchor = {
-                x: event.clientX - rect.left,
-                y: event.clientY - rect.top
-            };
-            const target = mapViewState.scale > 1.6 ? MAP_MIN_SCALE : 2.2;
-            setMapScale(target, anchor);
-        });
+        // Crear mapa centrado en Peru por defecto
+        mapState.mapInstance = L.map('routeMapCanvas', {
+            zoomControl: false // Agregaremos uno personalizado o lo dejaremos libre
+        }).setView([-10.0, -75.0], 5); // Centro aproximado de Perú, zoom 5
 
-        zoomInBtn?.addEventListener("click", () => setMapScale(mapViewState.scale * 1.2));
-        zoomOutBtn?.addEventListener("click", () => setMapScale(mapViewState.scale * 0.84));
-        resetBtn?.addEventListener("click", resetMapView);
-        window.addEventListener("resize", applyMapTransform);
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(mapState.mapInstance);
 
-        mapViewState.initialized = true;
-        resetMapView();
+        // Capa de CartoDB Positron (Colores claros, modernos)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(mapState.mapInstance);
+
+        mapState.routeLayerGroup = L.layerGroup().addTo(mapState.mapInstance);
+        mapState.markerLayerGroup = L.layerGroup().addTo(mapState.mapInstance);
+
         return true;
     }
 
@@ -557,6 +427,12 @@ window.RoutesModule = ((AppUtils) => {
                     <p>Destino</p>
                     <strong>${route.destination}</strong>
                 </article>
+                <article class="modal-metric">
+                    <p>Daño (Camión / Carga)</p>
+                    <strong style="${route.vehicleDamage > 0 || route.trailersDamage > 0 ? 'color: #dc2626;' : 'color: #16a34a;'}">
+                        ${route.vehicleDamage}% / ${route.trailersDamage}%
+                    </strong>
+                </article>
             </div>
             ${publicUrl ? `<p class="modal-route-link"><a href="${publicUrl}" target="_blank" rel="noopener noreferrer">Ver viaje en Trucky</a></p>` : ""}
         `;
@@ -581,18 +457,23 @@ window.RoutesModule = ((AppUtils) => {
     }
 
     /**
-     * Establece los elementos del mapa activos
+     * Establece los elementos del mapa activos (Leaflet)
      */
     function setActiveRouteMapElements(routeId) {
+        if (!mapState.mapInstance) return;
         const key = String(routeId || "");
-        document.querySelectorAll(".route-marker.active, .map-route-line.active").forEach((element) => {
-            element.classList.remove("active");
+
+        // Reset all styles
+        mapState.polylines.forEach((layer) => {
+            layer.setStyle({ weight: 4, opacity: 0.5 });
         });
 
-        if (!key) return;
-        document.querySelectorAll(`[data-route-id="${key}"]`).forEach((element) => {
-            element.classList.add("active");
-        });
+        // Highlight selected
+        const selectedLayer = mapState.polylines.get(key);
+        if (selectedLayer) {
+            selectedLayer.setStyle({ weight: 7, opacity: 1 });
+            selectedLayer.bringToFront();
+        }
     }
 
     /**
@@ -615,21 +496,26 @@ window.RoutesModule = ((AppUtils) => {
     }
 
     /**
-     * Renderiza las rutas
+     * Renderiza las rutas en el mapa de Leaflet
      */
-    function renderRoutes(routes, source) {
+    async function renderRoutes(routes, source) {
         const routeList = document.getElementById("routeList");
-        const mapMarkers = document.getElementById("mapMarkers");
-        const mapRoutesLayer = document.getElementById("mapRoutesLayer");
         const routeIndicator = document.getElementById("routeIndicator");
 
-        if (!routeList || !mapMarkers || !routeIndicator) return;
-        ensureMapView();
+        if (!routeList || !routeIndicator) return;
+        if (!ensureMapView()) {
+            // Reintentar si Leaflet no cargó aún
+            setTimeout(() => renderRoutes(routes, source), 500);
+            return;
+        }
+        mapState.mapInstance.invalidateSize();
 
         routeList.innerHTML = "";
-        mapMarkers.innerHTML = "";
-        if (mapRoutesLayer) mapRoutesLayer.innerHTML = "";
-        resetMapView();
+
+        mapState.routeLayerGroup.clearLayers();
+        mapState.markerLayerGroup.clearLayers();
+        mapState.polylines.clear();
+        mapState.paletteIndex = 0;
 
         const activeCount = routes.length;
         const todayLabel = AppUtils.getTodayLabelInLima();
@@ -644,10 +530,12 @@ window.RoutesModule = ((AppUtils) => {
 
         if (routes.length === 0) {
             routeList.innerHTML = '<p class="hint">No hay viajes recientes para mostrar.</p>';
+            resetMapView();
             return;
         }
 
-        routes.forEach((route) => {
+        // Crear una lista de promesas para OSRM fetching
+        const routeRenderPromises = routes.map(async (route) => {
             const item = document.createElement("button");
             item.type = "button";
             item.className = "route-item route-trip-btn";
@@ -671,27 +559,80 @@ window.RoutesModule = ((AppUtils) => {
 
             const originPos = getCityPosition(route.origin, route.originId);
             const destinationPos = getCityPosition(route.destination, route.destinationId);
-            const markerPos = midpoint(originPos, destinationPos);
 
-            if (originPos && destinationPos && mapRoutesLayer) {
-                const line = document.createElementNS(SVG_NAMESPACE, "line");
-                line.classList.add("map-route-line");
-                line.dataset.routeId = String(route.id || "");
-                line.setAttribute("x1", String(originPos.x));
-                line.setAttribute("y1", String(originPos.y));
-                line.setAttribute("x2", String(destinationPos.x));
-                line.setAttribute("y2", String(destinationPos.y));
-                mapRoutesLayer.appendChild(line);
+            if (originPos && destinationPos) {
+                // Obtener geometria real
+                const geojsonFeature = await fetchRoutePolyline(originPos, destinationPos);
+
+                const routeColor = mapState.colorPalette[mapState.paletteIndex % mapState.colorPalette.length];
+                mapState.paletteIndex++;
+
+                let routeLayer;
+
+                if (geojsonFeature) {
+                    // Trazar línea de OSRM
+                    routeLayer = L.geoJSON(geojsonFeature, {
+                        style: {
+                            color: routeColor,
+                            weight: 4,
+                            opacity: 0.7,
+                            lineCap: 'round',
+                            lineJoin: 'round'
+                        }
+                    }).addTo(mapState.routeLayerGroup);
+                } else {
+                    // Fallback a línea recta si falla OSRM
+                    routeLayer = L.polyline([
+                        [originPos.lat, originPos.lng],
+                        [destinationPos.lat, destinationPos.lng]
+                    ], {
+                        color: routeColor,
+                        weight: 4,
+                        opacity: 0.7,
+                        dashArray: '10, 10'
+                    }).addTo(mapState.routeLayerGroup);
+                }
+
+                // Guardar referencia para eventos
+                mapState.polylines.set(String(route.id), routeLayer);
+
+                // Crear círculos en origen y destino
+                const originMarker = L.circleMarker([originPos.lat, originPos.lng], {
+                    radius: 5,
+                    fillColor: "#fff",
+                    color: routeColor,
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 1
+                });
+
+                const destMarker = L.circleMarker([destinationPos.lat, destinationPos.lng], {
+                    radius: 8,
+                    fillColor: routeColor,
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 1
+                });
+
+                originMarker.bindTooltip(`Origen: ${route.origin}`).addTo(mapState.markerLayerGroup);
+                destMarker.bindTooltip(`Destino: ${route.destination} (${route.driverName})`).addTo(mapState.markerLayerGroup);
+
+                // Eventos Leaflet
+                routeLayer.on('click', handleSelect);
+                destMarker.on('click', handleSelect);
+                originMarker.on('click', handleSelect);
             }
+        });
 
-            if (markerPos) {
-                mapMarkers.appendChild(createMarker(
-                    route,
-                    markerPos,
-                    `${route.origin} → ${route.destination}`,
-                    "route-marker-mid",
-                    handleSelect
-                ));
+        // Esperar a que todss se rendericen para hacer el fitBounds general
+        Promise.allSettled(routeRenderPromises).then(() => {
+            const allPolylines = Array.from(mapState.polylines.values());
+            if (allPolylines.length > 0) {
+                const group = new L.featureGroup(allPolylines);
+                mapState.mapInstance.fitBounds(group.getBounds(), { padding: [30, 30] });
+            } else {
+                resetMapView();
             }
         });
     }

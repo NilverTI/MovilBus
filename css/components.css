@@ -333,7 +333,7 @@
     pointer-events: none;
 }
 
-.psv-plate-frame > * {
+.psv-plate-frame>* {
     position: relative;
     z-index: 1;
 }
@@ -343,20 +343,16 @@
     inset: -22% -16%;
     z-index: 0 !important;
     background:
-        repeating-linear-gradient(
-            118deg,
+        repeating-linear-gradient(118deg,
             rgba(121, 196, 255, 0.16) 0px,
             rgba(121, 196, 255, 0.16) 1px,
             transparent 1px,
-            transparent 32px
-        ),
-        repeating-linear-gradient(
-            24deg,
+            transparent 32px),
+        repeating-linear-gradient(24deg,
             rgba(255, 211, 140, 0.1) 0px,
             rgba(255, 211, 140, 0.1) 1px,
             transparent 1px,
-            transparent 38px
-        );
+            transparent 38px);
     opacity: 0.34;
     transform: rotate(-4deg) scale(1.02);
     pointer-events: none;
@@ -1069,7 +1065,7 @@
 
 .google-form-wrap {
     width: 100%;
-    border: 1px solid #f1e4d8;
+    border: 1px solid #ff7b00;
     border-radius: 14px;
     overflow: hidden;
     background: #fff;
@@ -1090,142 +1086,37 @@
     border-radius: 14px;
     overflow: hidden;
     border: 1px solid #f3e7db;
-    background: linear-gradient(180deg, #fffaf6, #ffffff);
+    background: #e5e5e5;
+    /* leaflet loading color */
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-    touch-action: none;
-    cursor: grab;
 }
 
-.map-frame.dragging {
-    cursor: grabbing;
+.map-frame .leaflet-container {
+    font-family: inherit;
+    border-radius: 14px;
 }
 
-.map-canvas {
-    position: absolute;
-    inset: 0;
-    transform-origin: 0 0;
-    will-change: transform;
+/* Modificando tooltip de Leaflet para MovilBus */
+.leaflet-tooltip {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid var(--orange) !important;
+    box-shadow: 0 4px 12px rgba(239, 95, 0, 0.15) !important;
+    color: #1f2937 !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    white-space: nowrap;
 }
 
-.map-frame img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    mix-blend-mode: normal;
-    opacity: 1;
-    user-select: none;
-    -webkit-user-drag: none;
+.leaflet-tooltip::before {
+    border-top-color: var(--orange) !important;
 }
 
-.map-routes {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.map-markers {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-}
-
-.route-marker {
-    position: absolute;
-    width: 15px;
-    height: 15px;
-    border: none;
-    border-radius: 50%;
-    background: var(--orange);
-    box-shadow: 0 0 0 5px rgba(255, 106, 0, 0.18);
-    pointer-events: auto;
-    cursor: pointer;
-    transform: translate(-50%, -50%) scale(var(--marker-compensation, 1));
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.route-marker.route-marker-mid {
-    z-index: 3;
-}
-
-.route-marker.route-marker-origin,
-.route-marker.route-marker-destination {
-    width: 10px;
-    height: 10px;
-    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.16);
-    z-index: 2;
-}
-
-.route-marker.route-marker-destination {
-    background: #ea580c;
-}
-
-.route-marker.active {
-    transform: translate(-50%, -50%) scale(calc(var(--marker-compensation, 1) * 1.18));
-    box-shadow: 0 0 0 7px rgba(255, 106, 0, 0.24);
-}
-
-.route-marker::after {
-    content: "";
-    position: absolute;
-    inset: -5px;
-    border-radius: 50%;
-    border: 1px solid rgba(239, 95, 0, 0.4);
-    animation: ping 2s infinite;
-}
-
-.map-route-line {
-    stroke: rgba(255, 106, 0, 0.52);
-    stroke-width: 0.6;
-    stroke-linecap: round;
-    stroke-dasharray: 2.6 1.2;
-    opacity: 0.8;
-    transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
-}
-
-.map-route-line.active {
-    stroke: #ef5f00;
-    stroke-width: 0.92;
-    opacity: 1;
-}
-
-.map-controls {
-    margin-top: 10px;
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-}
-
-.map-control-btn {
-    border: 1px solid #ead4c2;
-    background: #fff;
-    color: #6a4a2a;
-    border-radius: 10px;
-    padding: 8px 10px;
-    min-width: 38px;
-    font: inherit;
-    font-weight: 700;
-    line-height: 1;
-    cursor: pointer;
-    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-}
-
-.map-control-btn:hover {
-    border-color: rgba(255, 106, 0, 0.5);
-    color: #c45100;
-    background: #fff5ec;
-}
-
-.map-control-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.map-control-reset {
-    padding-inline: 12px;
+/* Esconder las atribuciones largas de leaflet si es pantalla chica, o estilizarlas */
+.leaflet-control-attribution {
+    font-size: 0.65rem !important;
+    background: rgba(255, 255, 255, 0.7) !important;
 }
 
 .hint {
@@ -1468,6 +1359,7 @@
     align-items: center;
     gap: 10px;
     min-width: 0;
+    flex: 1;
 }
 
 .rank-badge {
@@ -1494,6 +1386,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
 }
 
 .rank-km {
@@ -1501,6 +1395,8 @@
     font-weight: 700;
     white-space: nowrap;
     font-size: 1.02rem;
+    flex-shrink: 0;
+    text-align: right;
 }
 
 .footer {
@@ -1775,7 +1671,7 @@
 }
 
 .history-month-header {
-    background: rgba(255,106,0,0.06);
+    background: rgba(255, 106, 0, 0.06);
     padding: 10px 14px;
     border-radius: 8px;
     border-left: 3px solid var(--orange);
@@ -1785,7 +1681,7 @@
 }
 
 .history-month-header:hover {
-    background: rgba(255,106,0,0.1);
+    background: rgba(255, 106, 0, 0.1);
 }
 
 .history-toggle-icon {
@@ -1854,11 +1750,12 @@
     }
 
     .ranking-name {
-        max-width: 160px;
+        max-width: none;
+        font-size: 0.88rem;
     }
 
     .rank-km {
-        font-size: 0.96rem;
+        font-size: 0.94rem;
     }
 
     .footer-main {
@@ -1981,6 +1878,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .hero-carousel-slide,
     .hero-carousel-slide.is-active,
     .hero-carousel-slide.is-exiting {
@@ -1996,6 +1894,7 @@
 }
 
 @keyframes navTikTokPulse {
+
     0%,
     100% {
         transform: translateY(0) scale(1);
@@ -2174,7 +2073,18 @@
     }
 
     .ranking-name {
-        max-width: 148px;
+        max-width: none;
+        font-size: 0.82rem;
+    }
+    
+    .rank-badge {
+        width: 18px;
+        font-size: 0.85rem;
+    }
+    
+    .rank-avatar {
+        width: 30px;
+        height: 30px;
     }
 
     .footer-main {
@@ -2213,13 +2123,15 @@
     }
 
     .ranking-row {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        padding: 10px 12px;
     }
 
     .rank-km {
-        margin-left: 38px;
+        margin-left: 0;
+        font-size: 0.86rem;
     }
 
     .worker-card {

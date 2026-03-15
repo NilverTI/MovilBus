@@ -1,4 +1,4 @@
-﻿<!--
+<!--
    ___  _____    ___
   /   ||  _  |  /   | _
  / /| || |/' | / /| |(_)
@@ -18,19 +18,10 @@
         </div>
         <div class="routes-layout">
             <article class="map-card">
-                <div class="map-frame" id="routeMapFrame">
-                    <div class="map-canvas" id="routeMapCanvas">
-                        <img src="assets/img/mapa-peru.png" alt="Mapa del Perú con rutas activas">
-                        <svg id="mapRoutesLayer" class="map-routes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
-                        <div id="mapMarkers" class="map-markers"></div>
-                    </div>
+                <div class="map-frame" id="routeMapFrame" style="height: 500px; width: 100%; border-radius: 10px; overflow: hidden;">
+                    <div id="routeMapCanvas" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;"></div>
                 </div>
-                <div class="map-controls" aria-label="Controles de mapa">
-                    <button type="button" id="mapZoomIn" class="map-control-btn" aria-label="Acercar mapa">+</button>
-                    <button type="button" id="mapZoomOut" class="map-control-btn" aria-label="Alejar mapa">-</button>
-                    <button type="button" id="mapResetView" class="map-control-btn map-control-reset" aria-label="Centrar mapa">Centrar</button>
-                </div>
-                <p class="hint">Rutas visualizadas según la última actividad registrada en las últimas 72 horas. Puedes acercar y arrastrar el mapa.</p>
+                <p class="hint">Rutas visualizadas según la última actividad registrada en las últimas 72 horas. Puedes acercar y arrastrar el mapa interactivo.</p>
             </article>
             <article class="route-info-card">
                 <div class="route-indicator">
