@@ -1841,11 +1841,66 @@
 
     .radio-widget {
         top: auto;
-        bottom: 16px;
-        right: 12px;
-        left: auto;
-        width: 100px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 74px;
+        aspect-ratio: auto;
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid rgba(255, 120, 0, 0.4);
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+        background: rgba(18, 22, 30, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        z-index: 1000;
+    }
+
+    .radio-widget-overlay {
+        position: static;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 0;
+        background: transparent;
+        width: 100%;
+    }
+
+    .radio-widget-title {
+        font-size: 0.7rem;
+        text-align: left;
+        flex: 1;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.2;
+    }
+
+    .radio-cover {
+        width: 44px;
+        height: 44px;
+        border-radius: 6px;
+        margin-right: 4px;
+    }
+
+    .radio-toggle-button {
+        position: static;
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+    }
+
+    .radio-volume-range {
+        display: none; /* Ocultar volumen en mobile para ahorrar espacio */
+    }
+
+    /* Añadir espacio al final de las secciones para que el ultimo item no quede tapado por la radio */
+    #nosotros, #rutas, #trabajadores, #ranking, #postula {
+        padding-bottom: 100px;
     }
 
     .radio-toggle-button {
@@ -1989,8 +2044,9 @@
 
 .worker-stat span:last-child {
     text-align: right;
-    max-width: 72%;
+    max-width: 65%;
     overflow-wrap: anywhere;
+    line-height: 1.2;
 }
 
 @media (max-width: 860px) {
@@ -2155,23 +2211,24 @@
     }
 
     .worker-stat {
-        font-size: 0.88rem;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: baseline;
     }
 
     .worker-stat span:last-child {
-        max-width: 65%;
-    }
-
-    .footer-logo {
-        width: 138px;
-    }
-
-    .footer-tiktok {
-        padding: 8px 15px;
+        max-width: 100%;
+        text-align: right;
+        flex: 1;
+        min-width: 60%;
     }
 
     .footer-copy {
         font-size: 0.8rem;
+    }
+    
+    #nosotros, #rutas, #trabajadores, #ranking, #postula {
+        padding-bottom: 120px;
     }
 }
 

@@ -10,11 +10,11 @@ export async function handler(event) {
         };
     }
 
+    const isCdn = path.startsWith("cdn.truckyapp.com");
     let url;
-    if (path.startsWith("cdn.truckyapp.com")) {
+    if (isCdn) {
         url = `https://${path}`;
     } else {
-        const API_BASE = "https://e.truckyapp.com";
         url = `${API_BASE}/${path}`;
     }
     
@@ -24,11 +24,18 @@ export async function handler(event) {
     }
 
     try {
+        const fetchHeaders = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        };
+
+        if (!isCdn) {
+            fetchHeaders["Accept"] = "application/json";
+        } else {
+            fetchHeaders["Accept"] = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8";
+        }
+
         const response = await fetch(url, {
-            headers: {
-                "User-Agent": "MovilBusPSV",
-                "Accept": "application/json"
-            }
+            headers: fetchHeaders
         });
 
         const contentType = response.headers.get("content-type") || "application/json";
