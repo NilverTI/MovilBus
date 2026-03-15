@@ -315,11 +315,18 @@ window.TruckyService = ((AppUtils, AppApi) => {
         const url = String(value || "").trim();
         if (!url) return DEFAULT_AVATAR;
 
-        const lowerUrl = url.toLowerCase();
-        const isPlaceholder = PLACEHOLDER_AVATAR_SIGNATURES.some((signature) => lowerUrl.includes(signature));
-        if (isPlaceholder) return DEFAULT_AVATAR;
+        // Si ya es una URL completa, la retornamos a menos que sea el avatar por defecto
+        if (url.startsWith("http")) {
+            const lowerUrl = url.toLowerCase();
+            const isPlaceholder = PLACEHOLDER_AVATAR_SIGNATURES.some((signature) => lowerUrl.includes(signature));
+            if (isPlaceholder) return DEFAULT_AVATAR;
+            return url;
+        }
 
-        return url;
+        // Si Trucy retorna solo el hash o la foto, construir la url
+        // Usualmente trucky avatars estarian bajo https://truckyapp.com/assets/avatars o un bucket de s3
+        // Pero intentemos anteponer el cdn si se ve como hash.
+        return `https://s3.eu-central-1.wasabisys.com/trucky-production/avatars/${url}`;
     }
 
     function normalizeMembers(rows) {
