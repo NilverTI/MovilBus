@@ -1144,9 +1144,13 @@
 .route-item {
     border: 1px solid #f1e4d8;
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 18px;
     cursor: pointer;
-    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    transition: all 0.2s ease;
+    background: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    display: block;
+    width: 100%;
 }
 
 .route-trip-btn {
@@ -1154,13 +1158,15 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    background: #fff;
+    gap: 16px;
+    background: transparent;
     text-align: left;
     font: inherit;
     color: inherit;
     appearance: none;
-    overflow: hidden;
+    border: none;
+    padding: 0;
+    overflow: visible;
 }
 
 .route-trip-main {
@@ -1170,11 +1176,12 @@
 }
 
 .route-item h4 {
-    margin: 0;
+    margin: 0 0 4px 0;
     font-size: 1.05rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .route-item p {
@@ -1184,6 +1191,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.2;
 }
 
 .route-trip-km {
@@ -1196,9 +1204,10 @@
 
 .route-item:hover,
 .route-item.active {
-    border-color: rgba(255, 106, 0, 0.45);
-    background: #fff5ec;
-    transform: translateY(-2px);
+    border-color: var(--orange);
+    background: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(255, 106, 0, 0.1);
 }
 
 .route-item:focus-visible {
@@ -1732,27 +1741,34 @@
         font-size: 0.95rem;
     }
 
+    .route-item {
+        padding: 15px;
+        margin-bottom: 4px;
+    }
+
     .route-trip-btn {
         align-items: center;
-        padding: 12px;
+        gap: 12px;
     }
 
     .route-item h4 {
         white-space: normal;
-        line-height: 1.2;
-        font-size: 0.95rem;
-        margin-bottom: 2px;
+        line-height: 1.25;
+        font-size: 0.98rem;
+        margin-bottom: 4px;
     }
 
     .route-item p {
         white-space: normal;
-        line-height: 1.2;
-        font-size: 0.82rem;
+        line-height: 1.3;
+        font-size: 0.84rem;
     }
 
     .route-trip-km {
-        font-size: 1.15rem;
-        margin-left: 8px;
+        font-size: 1.05rem;
+        margin-left: auto;
+        padding-left: 8px;
+        border-left: 1px solid rgba(255, 106, 0, 0.15);
     }
 
     .ranking-row {
@@ -1869,15 +1885,27 @@
         padding: 0;
         background: transparent;
         width: 100%;
+        overflow: hidden;
     }
 
     .radio-widget-title {
-        font-size: 0.7rem;
+        font-size: 0.62rem;
         text-align: left;
         flex: 1;
-        font-weight: 700;
+        font-weight: 800;
+        color: var(--orange);
+        line-height: 1.1;
+        min-width: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .radio-widget-title::after {
+        content: " PERUSERVER.DE";
         color: #fff;
-        line-height: 1.2;
+        display: block;
+        font-size: 0.75rem;
+        letter-spacing: 0.02em;
     }
 
     .radio-cover {
@@ -1895,7 +1923,12 @@
     }
 
     .radio-volume-range {
-        display: none; /* Ocultar volumen en mobile para ahorrar espacio */
+        display: block;
+        width: 50px;
+        flex-shrink: 0;
+        height: 4px;
+        margin-left: 5px;
+        accent-color: var(--orange);
     }
 
     /* Añadir espacio al final de las secciones para que el ultimo item no quede tapado por la radio */
@@ -2220,7 +2253,7 @@
         max-width: 100%;
         text-align: right;
         flex: 1;
-        min-width: 60%;
+        min-width: 50%;
     }
 
     .footer-copy {
