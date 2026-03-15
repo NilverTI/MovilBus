@@ -457,7 +457,7 @@ window.TruckyService = ((AppUtils, AppApi) => {
         // En local llamamos directamente a truckyapp.com
         return AppApi.IS_LOCAL
             ? "https://e.truckyapp.com"
-            : "/api/trucky-user";
+            : "/.netlify/functions/trucky";
     }
 
     function buildUserJobsEndpoint(userId, page = 1) {

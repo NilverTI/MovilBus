@@ -24,10 +24,10 @@ window.AppApi = ((AppUtils) => {
     );
 
     // En producción usamos el proxy de Netlify para esquivar CORS
-    // En local apuntamos directo a la API
+    // En local apuntamos directo a la API (o podemos usar el proxy si corremos netlify dev)
     const API_BASE = IS_LOCAL
         ? "https://e.truckyapp.com/api/v1/company/41407"
-        : "/api/trucky";
+        : "/.netlify/functions/trucky/api/v1/company/41407";
 
     // URL base para llamadas a api.mdcdev.me (PeruServer)
     const MDCDEV_BASE = IS_LOCAL
@@ -163,8 +163,8 @@ window.AppApi = ((AppUtils) => {
 
             if (nextUrl && !IS_LOCAL) {
                 // Forzar el uso del proxy en Netlify para las paginaciones también
-                nextUrl = nextUrl.replace("https://e.truckyapp.com/api/v1/company/41407", "/api/trucky");
-                nextUrl = nextUrl.replace("https://e.truckyapp.com", "/api/trucky-user");
+                nextUrl = nextUrl.replace("https://e.truckyapp.com/api/v1/company/41407", "/.netlify/functions/trucky/api/v1/company/41407");
+                nextUrl = nextUrl.replace("https://e.truckyapp.com", "/.netlify/functions/trucky");
             }
         }
 
