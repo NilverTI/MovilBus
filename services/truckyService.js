@@ -312,21 +312,36 @@ window.TruckyService = ((AppUtils, AppApi) => {
     }
 
     function sanitizeAvatarUrl(value) {
-        const url = String(value || "").trim();
+        let url = String(value || "").trim();
         if (!url) return DEFAULT_AVATAR;
 
-        // Si ya es una URL completa, la retornamos a menos que sea el avatar por defecto
-        if (url.startsWith("http")) {
-            const lowerUrl = url.toLowerCase();
-            const isPlaceholder = PLACEHOLDER_AVATAR_SIGNATURES.some((signature) => lowerUrl.includes(signature));
-            if (isPlaceholder) return DEFAULT_AVATAR;
-            return url;
+        // Si es solo un nombre de archivo, asumimos que es de Trucky
+        if (!url.startsWith("http")) {
+            url = `https://cdn.truckyapp.com/public/users/avatars/${url}`;
         }
 
-        // Si Trucy retorna solo el hash o la foto, construir la url
-        // Usualmente trucky avatars estarian bajo https://truckyapp.com/assets/avatars o un bucket de s3
-        // Pero intentemos anteponer el cdn si se ve como hash.
-        return `https://s3.eu-central-1.wasabisys.com/trucky-production/avatars/${url}`;
+        const lowerUrl = url.toLowerCase();
+        
+        // Verificar si es un placeholder de Steam o Trucky
+        const isPlaceholder = PLACEHOLDER_AVATAR_SIGNATURES.some((signature) => lowerUrl.includes(signature));
+        if (isPlaceholder) return DEFAULT_AVATAR;
+
+        // Si estamos en Netlify y la imagen es de Trucky, heredar el proxy para evitar el bloqueo CORB/ORB
+        if (!AppApi.IS_LOCAL && url.includes("truckyapp.com")) {
+            // Convertimos: https://cdn.truckyapp.com/public/users/239598/image.jpg
+            // En: /.netlify/functions/trucky/public/users/239598/image.jpg
+            // Pero el proxy ya tiene https://e.truckyapp.com como base? 
+            // Espera, el proxy usa https://e.truckyapp.com. 
+            // El CDN es diferente: https://cdn.truckyapp.com.
+            // Necesitamos que el proxy soporte el dominio completo si se lo pasamos?
+            // O mejor cambiar la base del proxy si detecta que empieza con cdn.
+            
+            // Para simplificar, usemos una URL que el proxy pueda entender o modifiquemos el proxy
+            // Por ahora, pasemos la URL completa al proxy si lo permite o usemos una ruta especial.
+            return `/.netlify/functions/trucky/${url.replace("https://", "")}`;
+        }
+
+        return url;
     }
 
     function normalizeMembers(rows) {

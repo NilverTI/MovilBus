@@ -10,11 +10,17 @@ export async function handler(event) {
         };
     }
 
-    let url = `${API_BASE}/${path}`;
+    let url;
+    if (path.startsWith("cdn.truckyapp.com")) {
+        url = `https://${path}`;
+    } else {
+        const API_BASE = "https://e.truckyapp.com";
+        url = `${API_BASE}/${path}`;
+    }
     
     const qs = new URLSearchParams(event.queryStringParameters).toString();
     if (qs) {
-        url += `?${qs}`;
+        url += (url.includes("?") ? "&" : "?") + qs;
     }
 
     try {
@@ -25,24 +31,33 @@ export async function handler(event) {
             }
         });
 
-        let data;
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            data = await response.json();
+        const contentType = response.headers.get("content-type") || "application/json";
+        
+        if (contentType.includes("application/json")) {
+            const data = await response.json();
+            return {
+                statusCode: response.status,
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Cache-Control": "public, max-age=60",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            };
         } else {
-            const textData = await response.text();
-            data = { error: "Non-JSON response", details: textData };
+            // Manejar datos binarios (imágenes para los avatars)
+            const buffer = await response.arrayBuffer();
+            return {
+                statusCode: response.status,
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Cache-Control": "public, max-age=3600",
+                    "Content-Type": contentType
+                },
+                body: Buffer.from(buffer).toString("base64"),
+                isBase64Encoded: true
+            };
         }
-
-        return {
-            statusCode: response.status,
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "public, max-age=60",
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        };
 
     } catch (error) {
         return {
